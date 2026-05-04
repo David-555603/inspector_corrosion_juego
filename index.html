@@ -3,229 +3,193 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Corrosion Quest: Inspector de Tuberías</title>
+    <title>CORROSION CRISIS: Inspector Pro</title>
     <style>
-        :root { --main-color: #3b82f6; --accent: #deff9a; }
-        body { margin: 0; padding: 0; background: #0f172a; font-family: 'Segoe UI', sans-serif; overflow: hidden; color: white; }
+        body { margin: 0; background: #000; font-family: 'Courier New', Courier, monospace; overflow: hidden; color: #0f0; }
         
-        /* ESCENARIO */
-        #game-world { position: relative; width: 100vw; height: 100vh; overflow: hidden; }
-        
-        #pipe-line {
+        #game-container { position: relative; width: 100vw; height: 100vh; background: #111; }
+
+        /* TUBERÍA DINÁMICA */
+        #pipe {
             position: absolute;
-            bottom: 35%;
-            width: 4000px; /* Tubería larga para caminar */
-            height: 100px;
-            background: linear-gradient(180deg, #64748b, #334155);
-            border-top: 4px solid #94a3b8;
-            transition: transform 0.1s ease-out;
+            bottom: 30%;
+            width: 5000px;
+            height: 90px;
+            background: linear-gradient(to bottom, #555, #222);
+            border-top: 5px solid #888;
+            transition: transform 0.1s linear;
         }
 
         /* AVATAR */
-        #avatar {
+        #inspector {
             position: absolute;
-            bottom: calc(35% + 90px);
+            bottom: calc(30% + 90px);
             left: 50px;
             font-size: 60px;
-            z-index: 100;
-            transition: transform 0.2s;
+            z-index: 10;
+            transition: 0.3s;
         }
 
-        /* PUNTOS DE INSPECCIÓN (DAÑOS) */
-        .damage-point {
+        /* EFECTOS DE FALLA */
+        .explosion { position: absolute; font-size: 80px; animation: boom 0.5s forwards; }
+        @keyframes boom { 0% { transform: scale(1); opacity: 1; } 100% { transform: scale(3); opacity: 0; } }
+
+        /* PUNTOS DE DAÑO */
+        .leak {
             position: absolute;
-            top: -30px;
-            width: 60px;
-            height: 60px;
-            background: #b45309;
+            top: -40px;
+            width: 50px;
+            height: 50px;
+            background: #f00;
             border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 30px;
             cursor: pointer;
-            animation: pulse 1.5s infinite;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 0 20px #f00;
+            animation: blink 0.5s infinite;
         }
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } }
 
-        .damage-point.repaired {
-            background: #22c55e !important;
-            animation: none;
-            box-shadow: 0 0 20px #22c55e;
+        /* UI */
+        #status-bar { position: fixed; top: 0; width: 100%; background: #222; padding: 15px; border-bottom: 2px solid #0f0; display: flex; justify-content: space-around; font-size: 20px; z-index: 1000; }
+        .life { color: #f00; font-size: 25px; }
+
+        #controls { position: fixed; bottom: 20px; width: 100%; display: flex; justify-content: space-around; padding: 0 20px; box-sizing: border-box; }
+        .btn { width: 120px; height: 120px; background: rgba(0,255,0,0.2); border: 3px solid #0f0; border-radius: 50%; color: #0f0; font-size: 40px; display: flex; align-items: center; justify-content: center; user-select: none; }
+
+        /* MODAL */
+        #modal {
+            display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: #000; border: 4px solid #f00; padding: 25px; width: 85%; max-width: 450px; z-index: 2000; text-align: center;
         }
-
-        @keyframes pulse {
-            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(180, 83, 9, 0.7); }
-            70% { transform: scale(1.2); box-shadow: 0 0 0 15px rgba(180, 83, 9, 0); }
-            100% { transform: scale(1); }
-        }
-
-        /* UI CONTROLES */
-        #ui-top { position: fixed; top: 20px; left: 20px; font-size: 24px; font-weight: bold; }
-        #score-val { color: var(--accent); }
-
-        #controls {
-            position: fixed;
-            bottom: 30px;
-            width: 100%;
-            display: flex;
-            justify-content: center;
-            gap: 20px;
-        }
-
-        .control-btn {
-            width: 80px;
-            height: 80px;
-            background: rgba(255,255,255,0.1);
-            border: 2px solid white;
-            border-radius: 50%;
-            color: white;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            user-select: none;
-            touch-action: none;
-        }
-
-        /* MODAL DE PREGUNTAS */
-        #quiz-card {
-            display: none;
-            position: fixed;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            width: 85%;
-            max-width: 400px;
-            background: #1e293b;
-            padding: 20px;
-            border-radius: 20px;
-            border: 3px solid var(--accent);
-            z-index: 1000;
-            text-align: center;
-        }
-
-        #quiz-card img { width: 100%; border-radius: 10px; margin-bottom: 15px; }
-        .opt-btn {
-            display: block;
-            width: 100%;
-            padding: 12px;
-            margin: 8px 0;
-            background: #334155;
-            color: white;
-            border: 1px solid #475569;
-            border-radius: 10px;
-            cursor: pointer;
-        }
+        #modal img { width: 100%; border: 2px solid #555; margin-bottom: 15px; }
+        .opt { display: block; width: 100%; padding: 15px; margin: 10px 0; background: #111; color: #0f0; border: 1px solid #0f0; font-family: inherit; cursor: pointer; }
     </style>
 </head>
 <body>
 
-<div id="game-world">
-    <div id="ui-top">REPUTACIÓN INSPECTOR: <span id="score-val">0</span></div>
-    
-    <div id="avatar">👷‍♂️</div>
-    
-    <div id="pipe-line">
+<div id="game-container">
+    <div id="status-bar">
+        <div>PLANT HEALTH: <span id="life-icons">❤️❤️❤️</span></div>
+        <div>SCORE: <span id="score-num">0</span></div>
+    </div>
+
+    <div id="inspector">👷</div>
+
+    <div id="pipe">
         </div>
 
     <div id="controls">
-        <div class="control-btn" id="btn-left">◀</div>
-        <div class="control-btn" id="btn-right">▶</div>
+        <div class="btn" id="left-btn">◀</div>
+        <div class="btn" id="right-btn">▶</div>
     </div>
 </div>
 
-<div id="quiz-card">
-    <h3 id="q-title">¿Qué tipo de daño es?</h3>
-    <img id="q-img" src="" alt="Corrosión">
+<div id="modal">
+    <h2 style="color: #deff9a">¡ALERTA DE CORROSIÓN!</h2>
+    <img id="q-img" src="">
+    <p id="q-text" style="font-size: 14px; margin-bottom: 10px;"></p>
     <div id="q-options"></div>
 </div>
 
 <script>
+    let playerPos = 0;
     let score = 0;
-    let playerX = 0;
-    let worldX = 0;
-    const pipe = document.getElementById('pipe-line');
-    const avatar = document.getElementById('avatar');
-    const quizCard = document.getElementById('quiz-card');
+    let lives = 3;
+    let isMoving = 0;
 
-    // DATOS DEL JUEGO (Aquí subes tus imágenes)
-    const damages = [
-        { x: 500, type: "Picaduras", img: "https://via.placeholder.com/300x200?text=Imagen+Pitting", options: ["Picaduras", "Galvánica", "Uniforme"], correct: 0 },
-        { x: 1200, type: "Galvánica", img: "https://via.placeholder.com/300x200?text=Imagen+Galvanica", options: ["Erosión", "Galvánica", "Intergranular"], correct: 1 },
-        { x: 1800, type: "Erosión", img: "https://via.placeholder.com/300x200?text=Imagen+Erosion", options: ["Esfuerzo", "Picaduras", "Erosión-Corrosión"], correct: 2 }
+    const pipe = document.getElementById('pipe');
+    const inspector = document.getElementById('inspector');
+    const modal = document.getElementById('modal');
+
+    // DATOS DE LAS FALLAS
+    const scenarios = [
+        { x: 600, img: "https://via.placeholder.com/400x250?text=PITTING+PHOTO", desc: "Ves hoyuelos localizados en el acero inoxidable. ¿Diagnóstico?", opts: ["Picaduras", "Uniforme", "Galvánica"], correct: 0 },
+        { x: 1400, img: "https://via.placeholder.com/400x250?text=GALVANIC+PHOTO", desc: "Unión de aluminio con bronce bajo agua de mar. ¿Qué sucede?", opts: ["Erosión", "Intergranular", "Galvánica"], correct: 2 },
+        { x: 2200, img: "https://via.placeholder.com/400x250?text=EROSION+PHOTO", desc: "El codo de la tubería presenta ondas de desgaste. ¿Causa?", opts: ["Esfuerzo", "Erosión-Corrosión", "Picaduras"], correct: 1 }
     ];
 
-    // Generar puntos en la tubería
-    damages.forEach((d, i) => {
-        const div = document.createElement('div');
-        div.className = 'damage-point';
-        div.style.left = d.x + 'px';
-        div.innerHTML = '🔍';
-        div.id = 'damage-' + i;
-        div.onclick = () => openInspection(i);
-        pipe.appendChild(div);
+    // Crear fallas en el mapa
+    scenarios.forEach((s, i) => {
+        const d = document.createElement('div');
+        d.className = 'leak';
+        d.style.left = s.x + 'px';
+        d.innerHTML = '⚠️';
+        d.id = 's-' + i;
+        d.onclick = () => openQuiz(i);
+        pipe.appendChild(d);
     });
 
-    // Movimiento
-    let moveDir = 0;
-    function update() {
-        if(moveDir !== 0) {
-            worldX -= moveDir * 7;
-            // Limitar movimiento
-            if(worldX > 0) worldX = 0;
-            pipe.style.transform = `translateX(${worldX}px)`;
-            
-            // Animación simple de caminado
-            avatar.style.transform = `scaleX(${moveDir > 0 ? 1 : -1})`;
+    // Motor de movimiento
+    function loop() {
+        if(isMoving !== 0) {
+            playerPos -= isMoving * 8;
+            if(playerPos > 0) playerPos = 0;
+            pipe.style.transform = `translateX(${playerPos}px)`;
         }
-        requestAnimationFrame(update);
+        requestAnimationFrame(loop);
     }
-    update();
+    loop();
 
-    // Controles táctiles
-    const setupBtn = (id, dir) => {
-        const btn = document.getElementById(id);
-        const start = (e) => { e.preventDefault(); moveDir = dir; };
-        const end = () => { moveDir = 0; };
-        btn.addEventListener('touchstart', start);
-        btn.addEventListener('touchend', end);
-        btn.addEventListener('mousedown', start);
-        btn.addEventListener('mouseup', end);
+    // Controles
+    const handleBtn = (id, dir) => {
+        const b = document.getElementById(id);
+        b.onmousedown = b.ontouchstart = (e) => { e.preventDefault(); isMoving = dir; inspector.style.transform = `scaleX(${dir})`; };
+        b.onmouseup = b.ontouchend = () => isMoving = 0;
     };
-    setupBtn('btn-left', -1);
-    setupBtn('btn-right', 1);
+    handleBtn('left-btn', -1);
+    handleBtn('right-btn', 1);
 
-    function openInspection(index) {
-        moveDir = 0;
-        const d = damages[index];
-        const dot = document.getElementById('damage-' + index);
-        if(dot.classList.contains('repaired')) return;
+    function openQuiz(idx) {
+        isMoving = 0;
+        const s = scenarios[idx];
+        document.getElementById('q-img').src = s.img;
+        document.getElementById('q-text').innerText = s.desc;
+        const optDiv = document.getElementById('q-options');
+        optDiv.innerHTML = '';
 
-        document.getElementById('q-img').src = d.img;
-        const opts = document.getElementById('q-options');
-        opts.innerHTML = '';
-        
-        d.options.forEach((opt, i) => {
-            const b = document.createElement('button');
-            b.className = 'opt-btn';
-            b.innerText = opt;
-            b.onclick = () => {
-                if(i === d.correct) {
-                    score += 100;
-                    dot.classList.add('repaired');
-                    dot.innerHTML = '✅';
-                    alert("¡Excelente diagnóstico! Reparando sección...");
-                } else {
-                    score -= 50;
-                    alert("Error. El daño se extiende. -50 pts");
-                }
-                document.getElementById('score-val').innerText = score;
-                quizCard.style.display = 'none';
-            };
-            opts.appendChild(b);
+        s.opts.forEach((o, i) => {
+            const btn = document.createElement('button');
+            btn.className = 'opt';
+            btn.innerText = o;
+            btn.onclick = () => checkAnswer(idx, i);
+            optDiv.appendChild(btn);
         });
-        quizCard.style.display = 'block';
+        modal.style.display = 'block';
+    }
+
+    function checkAnswer(idx, chosen) {
+        modal.style.display = 'none';
+        const s = scenarios[idx];
+        const leakIcon = document.getElementById('s-' + idx);
+
+        if(chosen === s.correct) {
+            score += 100;
+            leakIcon.innerHTML = '🛠️';
+            leakIcon.style.background = '#0f0';
+            leakIcon.style.animation = 'none';
+            alert("✅ ¡REPARADO! Sumas 100 puntos.");
+        } else {
+            lives--;
+            // EFECTO DE FALLA
+            const exp = document.createElement('div');
+            exp.className = 'explosion';
+            exp.innerHTML = '💥🔥';
+            exp.style.left = s.x + 'px';
+            pipe.appendChild(exp);
+            
+            inspector.innerHTML = '💀';
+            setTimeout(() => inspector.innerHTML = '👷', 1000);
+            
+            alert("❌ ¡FALLO CRÍTICO! La tubería ha colapsado.");
+            updateLives();
+        }
+        document.getElementById('score-num').innerText = score;
+        if(lives <= 0) { alert("GAME OVER: La planta ha sido clausurada."); location.reload(); }
+    }
+
+    function updateLives() {
+        document.getElementById('life-icons').innerText = "❤️".repeat(lives);
     }
 </script>
-
 </body>
 </html>
