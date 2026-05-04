@@ -3,17 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>CorroPac: Maze Collector Fixed</title>
+  <title>CorroPac: Maze Master</title>
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
   <style>
-    body { margin:0; background:#000; overflow:hidden; touch-action: none; font-family: 'Courier New', monospace; }
+    body { margin:0; background:#000; overflow:hidden; touch-action: none; font-family: sans-serif; }
     #ui {
       position: absolute; top: 0; width: 100%; z-index: 100;
       background: rgba(0, 0, 0, 0.9); border-bottom: 2px solid #0055ff;
-      padding: 8px 0; color: #fff; text-align: center;
+      padding: 5px 0; color: #fff; text-align: center;
     }
-    #hud { display: flex; justify-content: center; gap: 15px; font-weight: bold; font-size: 13px; }
-    
+    #hud { display: flex; justify-content: center; gap: 15px; font-weight: bold; font-size: 14px; }
     .modal {
       display:none; position:fixed; top:0; left:0; right:0; bottom:0;
       background:rgba(0,0,0,0.95); z-index:2000; align-items:center; justify-content:center;
@@ -22,19 +21,18 @@
       background:#000; padding:15px; border-radius:10px; width:80%; max-width:350px;
       border:3px solid #00ff00; text-align:center;
     }
-    #corrosion-image { width:100%; border:2px solid #333; margin: 8px 0; }
+    #corrosion-image { width:100%; border-radius:5px; margin: 10px 0; }
     .opt-btn {
-      width:100%; padding:10px; margin:4px 0; background:#001133; border:2px solid #00ff00; color:#00ff00;
-      font-family: inherit; font-weight: bold; cursor: pointer; font-size: 12px;
+      width:100%; padding:12px; margin:5px 0; background:#001133; border:2px solid #00ff00; color:#00ff00;
+      font-weight: bold; border-radius: 5px; font-size: 14px;
     }
-
-    #mobile-controls { position: fixed; bottom: 15px; width: 100%; display: flex; justify-content: center; z-index: 150; }
-    .d-pad { display: grid; grid-template-columns: 60px 60px 60px; gap: 8px; }
+    #mobile-controls { position: fixed; bottom: 10px; width: 100%; display: flex; justify-content: center; z-index: 150; }
+    .d-pad { display: grid; grid-template-columns: 65px 65px 65px; gap: 5px; }
     .joy-btn {
-      width: 60px; height: 60px; background: rgba(0, 85, 255, 0.2);
+      width: 60px; height: 60px; background: rgba(0, 85, 255, 0.3);
       border: 2px solid #0055ff; border-radius: 50%;
       display: flex; align-items: center; justify-content: center;
-      font-size: 22px; color: #fff; user-select: none;
+      font-size: 20px; color: #fff;
     }
   </style>
 </head>
@@ -50,9 +48,9 @@
 
 <div id="inspection-modal" class="modal">
   <div class="modal-content">
-    <h3 style="margin:0; color: #00ff00;">-- ANALIZANDO FALLA --</h3>
+    <h3 style="margin:0; color: #00ff00;">ANALIZANDO DAÑO</h3>
     <img id="corrosion-image" src="">
-    <p id="modal-description" style="color: #aaa; font-size: 11px;"></p>
+    <p id="modal-description" style="color: #ccc; font-size: 12px;"></p>
     <div id="options-container"></div>
   </div>
 </div>
@@ -66,11 +64,11 @@
 
 <script>
     const gameData = {
-        money: 1500, lives: 3, level: 1, isPaused: false, toolsCollected: 0,
+        lives: 3, level: 1, isPaused: false, toolsCollected: 0,
         input: { up: false, down: false, left: false, right: false },
         levels: [
-            { speed: 170, enemySpeed: 70, enemyCount: 3 },
-            { speed: 190, enemySpeed: 90, enemyCount: 5 }
+            { speed: 160, enemySpeed: 65, enemyCount: 3 },
+            { speed: 180, enemySpeed: 85, enemyCount: 5 }
         ]
     };
 
@@ -78,47 +76,41 @@
         constructor() { super('CorroPac'); }
 
         create() {
-            const config = gameData.levels[gameData.level - 1];
-            const w = window.innerWidth;
-            const h = window.innerHeight;
+            const w = this.cameras.main.width;
+            const h = this.cameras.main.height;
             gameData.toolsCollected = 0;
+            const config = gameData.levels[gameData.level - 1];
 
+            // Grupo de Paredes
             this.walls = this.physics.add.staticGroup();
-            this.drawFixedMaze(w, h);
+            this.generateLevelLayout(w, h);
 
-            // Inspector (Aparece en una zona segura y abierta)
-            this.player = this.add.container(60, 110);
-            this.player.add([this.add.circle(0, 0, 13, 0xffff00), this.add.text(-10, -16, '👷', {fontSize:'20px'})]);
+            // Inspector
+            this.player = this.add.container(45, 110);
+            this.player.add([this.add.circle(0, 0, 12, 0xffff00), this.add.text(-10, -15, '👷', {fontSize:'18px'})]);
             this.physics.add.existing(this.player);
-            this.player.body.setCircle(13, -13, -13).setCollideWorldBounds(true);
+            this.player.body.setCircle(12, -12, -12).setCollideWorldBounds(true);
             this.physics.add.collider(this.player, this.walls);
 
-            // Herramientas (10 llaves por toda la pista, usando coordenadas seguras)
+            // Herramientas (10 llaves por toda la pista)
             this.tools = this.physics.add.group();
-            const toolPositions = [
-                {x: w-60, y: 110}, {x: w/2, y: 110}, {x: 60, y: h/2}, 
-                {x: w-60, y: h/2}, {x: w/2, y: h/2 + 60}, {x: 100, y: h-220}, 
-                {x: w-100, y: h-220}, {x: w/2 - 60, y: 220}, {x: w/2 + 60, y: 220}, {x: w/2, y: h-220}
-            ];
-            toolPositions.forEach(p => {
-                let tool = this.add.text(p.x, p.y, '🔧', {fontSize:'20px'});
-                this.physics.add.existing(tool);
-                this.tools.add(tool);
-            });
-
+            const positions = this.getSafePositions(w, h);
+            for(let i=0; i<10; i++) {
+                let pos = positions[i % positions.length];
+                let t = this.add.text(pos.x, pos.y, '🔧', {fontSize:'20px'});
+                this.physics.add.existing(t);
+                this.tools.add(t);
+            }
             this.physics.add.overlap(this.player, this.tools, (p, t) => {
                 t.destroy();
                 gameData.toolsCollected++;
                 document.getElementById('tools-count').textContent = gameData.toolsCollected;
-                if(gameData.toolsCollected >= 10) alert("¡Todas las herramientas recogidas! Elimina los fallos para avanzar.");
             }, null, this);
 
-            // Enemigos (Fallas)
+            // Enemigos
             this.enemies = this.physics.add.group();
-            const spawns = [{x:w-50, y:120}, {x:50, y:h-250}, {x:w-50, y:h-250}, {x:w/2, y:h/2}];
-            for(let i=0; i<config.enemyCount; i++){
-                let p = spawns[i % spawns.length];
-                let e = this.add.container(p.x, p.y);
+            for(let i=0; i<config.enemyCount; i++) {
+                let e = this.add.container(w-50, h-250);
                 e.add(this.add.text(-12, -12, '⚠️', {fontSize:'22px'}));
                 this.physics.add.existing(e);
                 e.body.setCircle(12, -12, -12).setCollideWorldBounds(true).setBounce(1);
@@ -128,65 +120,60 @@
             this.physics.add.collider(this.enemies, this.walls);
             this.physics.add.overlap(this.player, this.enemies, this.hitEnemy, null, this);
 
-            // Controles Táctiles
+            // Controles
             const setup = (id, k) => {
                 const b = document.getElementById(id);
-                b.ontouchstart = (e) => { e.preventDefault(); gameData.input[k] = true; };
+                b.ontouchstart = (ev) => { ev.preventDefault(); gameData.input[k] = true; };
                 b.ontouchend = () => gameData.input[k] = false;
             };
             ['up','down','left','right'].forEach(k => setup(k, k));
         }
 
-        drawFixedMaze(w, h) {
+        generateLevelLayout(w, h) {
             const wallColor = 0x0055ff;
-            const mazeWall = (x, y, width, height) => {
-                let r = this.add.rectangle(x, y, width, height, wallColor).setStrokeStyle(2, 0x00ffff, 0.5);
-                this.walls.add(r);
+            const addW = (x, y, width, height) => {
+                this.walls.add(this.add.rectangle(x, y, width, height, wallColor).setStrokeStyle(2, 0x00ffff, 0.5));
             };
 
-            // Bordes Externos
-            mazeWall(w/2, 65, w, 10); // Techo
-            mazeWall(w/2, h-175, w, 10); // Piso
+            // Bordes principales
+            addW(w/2, 65, w, 10); // Techo
+            addW(w/2, h-180, w, 10); // Suelo (encima de controles)
 
             if(gameData.level === 1) {
-                // Laberinto Corregido Nivel 1 (Tipo Pacman funcional)
-                mazeWall(w/2, 140, 20, 100); // Pilar central superior
-                mazeWall(w/4, 210, w/2, 15); // Viga superior izq
-                mazeWall(w*0.75, 210, w/2, 15); // Viga superior der
-                
-                mazeWall(20, h/2 - 20, 15, 120); // Obstáculo lateral izq
-                mazeWall(w-20, h/2 - 20, 15, 120); // Obstáculo lateral der
-                
-                mazeWall(w/2, h/2 + 50, w*0.7, 15); // Viga central larga inferior
+                // NIVEL 1: Pasillos Horizontales (Estilo Tuberías)
+                addW(w/2, 160, w*0.7, 15);
+                addW(w/4, 280, 15, 120);
+                addW(w*0.75, 280, 15, 120);
+                addW(w/2, h/2 + 20, w*0.5, 15);
             } else {
-                // Laberinto Corregido Nivel 2 (Diseño diferente)
-                mazeWall(w/2, h/2 - 20, 20, h/2); // Gran pilar central
-                mazeWall(w/2, h/2 - 20, w/2, 20); // Gran viga central
-                
-                mazeWall(w/4, 130, 20, 80); // Esquina sup izq
-                mazeWall(w*0.75, 130, 20, 80); // Esquina sup der
-                
-                mazeWall(w/4, h-240, 20, 80); // Esquina inf izq
-                mazeWall(w*0.75, h-240, 20, 80); // Esquina inf der
+                // NIVEL 2: El laberinto cambia a bloques verticales
+                addW(w/2, h/2 - 50, 20, h*0.4); 
+                addW(w/4, 150, w/3, 15);
+                addW(w*0.75, 150, w/3, 15);
+                addW(w/4, h-300, w/3, 15);
+                addW(w*0.75, h-300, w/3, 15);
             }
+        }
+
+        getSafePositions(w, h) {
+            return [
+                {x: 40, y: h/2}, {x: w-60, y: 100}, {x: w/2, y: 110},
+                {x: 60, y: h-230}, {x: w-60, y: h-230}, {x: w/2 - 40, y: 220},
+                {x: w/2 + 40, y: 220}, {x: 40, y: 150}, {x: w-50, y: 200}, {x: w/2, y: h-250}
+            ];
         }
 
         getRandomDefect() {
-            const types = [
-                {type:"uniforme", img:"https://picsum.photos/id/1015/300/200", desc:"Ataque corrosivo generalizado."},
-                {type:"pitting", img:"https://picsum.photos/id/201/300/200", desc:"Picaduras profundas localizadas."},
-                {type:"galvánica", img:"https://picsum.photos/id/866/300/200", desc:"Contacto entre metales distintos."},
-                {type:"erosión", img:"https://picsum.photos/id/1016/300/200", desc:"Desgaste por flujo turbulento."}
-            ];
-            return types[Math.floor(Math.random()*types.length)];
+            return [
+                {type:"uniforme", img:"https://picsum.photos/id/1015/300/200", desc:"Corrosión uniforme."},
+                {type:"pitting", img:"https://picsum.photos/id/201/300/200", desc:"Corrosión por picaduras."},
+                {type:"galvánica", img:"https://picsum.photos/id/866/300/200", desc:"Corrosión galvánica."},
+                {type:"erosión", img:"https://picsum.photos/id/1016/300/200", desc:"Erosión-corrosión."}
+            ][Math.floor(Math.random()*4)];
         }
 
         update() {
-            if (gameData.isPaused) { 
-                this.player.body.setVelocity(0); 
-                this.enemies.children.iterate(e=>{if(e.body) e.body.setVelocity(0)});
-                return; 
-            }
+            if (gameData.isPaused) { this.player.body.setVelocity(0); return; }
             const speed = gameData.levels[gameData.level-1].speed;
             this.player.body.setVelocity(0);
             if (gameData.input.left) this.player.body.setVelocityX(-speed);
@@ -203,7 +190,6 @@
             if (gameData.isPaused) return;
             gameData.isPaused = true;
             const def = e.defData;
-            const modal = document.getElementById('inspection-modal');
             document.getElementById('corrosion-image').src = def.img;
             document.getElementById('modal-description').textContent = def.desc;
             const cont = document.getElementById('options-container');
@@ -214,30 +200,23 @@
                 btn.onclick = () => {
                     if(opt.toLowerCase() === def.type.toLowerCase()) { e.destroy(); }
                     else { gameData.lives--; }
-                    modal.style.display = 'none';
+                    document.getElementById('inspection-modal').style.display = 'none';
                     this.checkStatus();
                 };
                 cont.appendChild(btn);
             });
-            modal.style.display = 'flex';
+            document.getElementById('inspection-modal').style.display = 'flex';
         }
 
         checkStatus() {
             document.getElementById('lives').textContent = "❤️".repeat(gameData.lives);
-            if(gameData.lives <= 0) { alert("PLANTA FUERA DE SERVICIO"); location.reload(); }
+            if(gameData.lives <= 0) { alert("PLANTA CAÍDA"); location.reload(); }
             else {
                 gameData.isPaused = false;
-                if(this.enemies.countActive() === 0) {
-                    if(gameData.toolsCollected < 10) {
-                        alert("¡Fallas eliminadas, pero te faltan herramientas! Búscalas en la pista.");
-                    } else {
-                        if(gameData.level >= 2) { alert("¡Felicidades, Inspector! Planta asegurada."); location.reload(); }
-                        else {
-                            gameData.level++;
-                            alert("¡Siguiente zona de inspección! El laberinto cambiará.");
-                            this.scene.restart();
-                        }
-                    }
+                if(this.enemies.countActive() === 0 && gameData.toolsCollected >= 10) {
+                    gameData.level++;
+                    alert("¡NIVEL COMPLETADO! El laberinto va a cambiar...");
+                    this.scene.restart();
                 }
             }
         }
