@@ -8,7 +8,6 @@
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      margin: 0;
       background: #0a1f2f;
       color: #00ff9d;
       font-family: 'Segoe UI', Arial, sans-serif;
@@ -19,39 +18,20 @@
       top: 0; left: 0; right: 0;
       z-index: 100;
       background: rgba(10, 31, 47, 0.95);
-      padding: 12px 20px;
+      padding: 10px 20px;
       text-align: center;
-      border-bottom: 2px solid #00ff9d;
+      border-bottom: 3px solid #00ff9d;
     }
-    h1 {
-      font-size: 2.4em;
-      text-shadow: 0 0 15px #00ff9d;
-      margin-bottom: 5px;
-    }
-    #hud {
-      display: flex;
-      justify-content: center;
-      gap: 40px;
-      font-size: 1.4em;
-      font-weight: bold;
-    }
-    button {
-      background: #00aa77;
-      color: white;
-      border: none;
-      padding: 8px 18px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 1em;
-    }
-    button:hover { background: #00ff9d; color: #000; }
+    h1 { font-size: 2.5em; text-shadow: 0 0 15px #00ff9d; }
+    #hud { display: flex; justify-content: center; gap: 40px; font-size: 1.35em; margin: 8px 0; }
+    button { background:#006633; color:white; border:none; padding:10px 20px; margin:5px; border-radius:6px; cursor:pointer; }
+    button:hover { background:#00ff9d; color:#000; }
 
-    /* Modal */
     .modal {
       display: none;
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.9);
+      background: rgba(0,0,0,0.92);
       z-index: 200;
       align-items: center;
       justify-content: center;
@@ -60,145 +40,102 @@
       background: #112233;
       padding: 25px;
       border-radius: 12px;
-      max-width: 700px;
+      max-width: 720px;
       width: 90%;
       border: 3px solid #00ff9d;
       text-align: center;
     }
+    #corrosion-image { width:100%; max-height:340px; border-radius:8px; margin:12px 0; }
     #options-container button {
       display: block;
       width: 100%;
-      margin: 10px 0;
-      padding: 14px;
-      font-size: 1.1em;
+      margin: 12px 0;
+      padding: 15px;
+      font-size: 1.15em;
       background: #223344;
-      border: 2px solid #00aa88;
+      border: 2px solid #00cc88;
       color: #00ff9d;
     }
-    #options-container button:hover {
-      background: #00aa77;
-      color: white;
-    }
-    #corrosion-image {
-      width: 100%;
-      max-height: 320px;
-      border-radius: 8px;
-      margin: 15px 0;
-    }
+    #options-container button:hover { background: #00aa77; }
   </style>
 </head>
 <body>
   <div id="ui-overlay">
-    <h1>🛠️ CorroDetective</h1>
+    <h1>🔧 CorroDetective</h1>
     <div id="hud">
       <span>Dinero: $<span id="money">1500</span></span>
       <span>Nivel: <span id="level">1</span></span>
       <span>Strikes: <span id="strikes">0</span>/3</span>
     </div>
-    <button id="reset-btn" style="margin-top:10px;">Reiniciar Nivel</button>
+    <button id="reset-btn">Reiniciar Nivel</button>
   </div>
 
   <div id="game-container"></div>
 
-  <!-- Modal de Inspección -->
+  <!-- Modal -->
   <div id="inspection-modal" class="modal">
     <div class="modal-content">
       <h2 id="modal-title">Inspección en curso...</h2>
       <img id="corrosion-image" src="" alt="Corrosión">
-      <p id="modal-description"></p>
+      <p id="modal-description" style="margin:15px 0; font-size:1.1em;"></p>
       <div id="options-container"></div>
-      <button id="close-modal" style="margin-top:15px; padding:10px 20px;">Cerrar</button>
+      <button id="close-modal" style="margin-top:15px;">Cerrar</button>
     </div>
   </div>
 
   <script>
-    // ==================== DATOS DEL JUEGO ====================
     const gameData = {
       currentLevel: 1,
       money: 1500,
       strikes: 0,
-      
-      levels: [
-        {
-          id: 1,
-          name: "Tanque de Almacenamiento",
-          background: "#1a3c2f",
-          budget: 1500,
-          maxStrikes: 3,
-          areas: [
-            {
-              id: 1,
-              x: 280, y: 200, width: 140, height: 90,
-              name: "Base del tanque",
-              type: "uniforme",
-              image: "https://picsum.photos/id/1015/800/500",
-              description: "Daño generalizado y uniforme en la superficie inferior.",
-              options: [
-                { text: "Corrosión Uniforme", correct: true },
-                { text: "Pitting", correct: false },
-                { text: "Corrosión Galvánica", correct: false },
-                { text: "Corrosión por Grieta (Crevice)", correct: false }
-              ]
-            },
-            {
-              id: 2,
-              x: 480, y: 340, width: 110, height: 80,
-              name: "Zona de soldadura",
-              type: "galvanica",
-              image: "https://picsum.photos/id/201/800/500",
-              description: "Daño cerca de la unión de dos metales diferentes.",
-              options: [
-                { text: "Corrosión Uniforme", correct: false },
-                { text: "Pitting", correct: false },
-                { text: "Corrosión Galvánica", correct: true },
-                { text: "Corrosión por Grieta (Crevice)", correct: false }
-              ]
-            },
-            {
-              id: 3,
-              x: 180, y: 420, width: 90, height: 70,
-              name: "Área con grieta",
-              type: "crevice",
-              image: "https://picsum.photos/id/866/800/500",
-              description: "Daño concentrado en una junta o grieta.",
-              options: [
-                { text: "Corrosión Uniforme", correct: false },
-                { text: "Pitting", correct: false },
-                { text: "Corrosión Galvánica", correct: false },
-                { text: "Corrosión por Grieta (Crevice)", correct: true }
-              ]
-            }
-          ]
-        }
-      ]
+      levels: [{
+        id: 1,
+        name: "Tanque de Almacenamiento",
+        background: "#1a3c2f",
+        maxStrikes: 3,
+        areas: [
+          { id:1, x:280, y:220, width:160, height:100, name:"Base del tanque", type:"uniforme",
+            image:"https://picsum.photos/id/1015/800/500",
+            description:"Daño generalizado en toda la superficie.",
+            options:[
+              {text:"Corrosión Uniforme", correct:true},
+              {text:"Pitting", correct:false},
+              {text:"Corrosión Galvánica", correct:false},
+              {text:"Corrosión por Grieta", correct:false}
+            ]
+          },
+          { id:2, x:520, y:280, width:130, height:90, name:"Zona de soldadura", type:"galvanica",
+            image:"https://picsum.photos/id/201/800/500",
+            description:"Corrosión cerca de la unión de metales diferentes.",
+            options:[
+              {text:"Corrosión Uniforme", correct:false},
+              {text:"Pitting", correct:false},
+              {text:"Corrosión Galvánica", correct:true},
+              {text:"Corrosión por Grieta", correct:false}
+            ]
+          }
+        ]
+      }]
     };
 
-    // ==================== CLASE DEL JUEGO (Phaser) ====================
     class CorrosionGame extends Phaser.Scene {
-      constructor() {
-        super({ key: 'CorrosionGame' });
-      }
+      constructor() { super({ key: 'CorrosionGame' }); }
 
       create() {
-        this.level = gameData.levels.find(l => l.id === gameData.currentLevel);
-        this.cameras.main.setBackgroundColor(this.level.background);
+        const level = gameData.levels[0];
+        this.cameras.main.setBackgroundColor(level.background);
 
-        this.add.text(50, 60, this.level.name, { 
-          fontSize: '32px', 
-          color: '#00ff9d',
-          fontStyle: 'bold'
-        }).setShadow(3, 3, '#000', 6);
+        this.add.text(40, 70, level.name, { fontSize: '34px', color: '#00ff9d', fontStyle: 'bold' })
+          .setShadow(4, 4, '#000', 8);
 
-        this.areas = [];
-        this.level.areas.forEach(area => {
-          const rect = this.add.rectangle(area.x, area.y, area.width, area.height, 0xffaa00, 0.25)
-            .setInteractive()
-            .setStrokeStyle(4, 0xff0000);
+        level.areas.forEach(area => {
+          const rect = this.add.rectangle(area.x, area.y, area.width, area.height, 0xffee00, 0.3)
+            .setInteractive({ useHandCursor: true })
+            .setStrokeStyle(5, 0xff0000);
 
           rect.areaData = area;
 
           rect.on('pointerdown', () => this.inspectArea(area));
-          this.areas.push(rect);
         });
 
         this.updateHUD();
@@ -208,14 +145,14 @@
         document.getElementById('modal-title').textContent = `Inspección: ${area.name}`;
         document.getElementById('corrosion-image').src = area.image;
         document.getElementById('modal-description').textContent = area.description;
-        
+
         const container = document.getElementById('options-container');
         container.innerHTML = '';
 
-        area.options.forEach(option => {
+        area.options.forEach(opt => {
           const btn = document.createElement('button');
-          btn.textContent = option.text;
-          btn.onclick = () => this.checkAnswer(option, area);
+          btn.textContent = opt.text;
+          btn.onclick = () => this.checkAnswer(opt, area);
           container.appendChild(btn);
         });
 
@@ -224,57 +161,47 @@
 
       checkAnswer(option, area) {
         if (option.correct) {
-          alert("✅ ¡Correcto! Excelente trabajo inspector.");
-          gameData.money += 350;
+          alert("✅ ¡Muy bien! Identificaste correctamente la corrosión.");
+          gameData.money += 400;
         } else {
-          alert("❌ Incorrecto. Era " + area.type.toUpperCase());
+          alert(`❌ Incorrecto. Era: ${area.type.toUpperCase()}`);
           gameData.strikes++;
-          gameData.money -= 250;
+          gameData.money = Math.max(200, gameData.money - 300);
 
-          if (gameData.strikes >= this.level.maxStrikes) {
-            alert("💥 Demasiados errores. Nivel fallado.");
+          if (gameData.strikes >= gameData.levels[0].maxStrikes) {
+            alert("💥 Has fallado el nivel. Demasiados errores.");
             gameData.strikes = 0;
-            gameData.money = Math.max(500, gameData.money);
           }
         }
-        
         this.updateHUD();
         document.getElementById('inspection-modal').style.display = 'none';
       }
 
       updateHUD() {
         document.getElementById('money').textContent = gameData.money;
-        document.getElementById('level').textContent = gameData.currentLevel;
         document.getElementById('strikes').textContent = gameData.strikes;
       }
     }
 
-    // ==================== INICIO DEL JUEGO ====================
-    let game;
-
-    window.onload = function() {
+    // Iniciar juego
+    window.onload = () => {
       const config = {
         type: Phaser.AUTO,
         width: window.innerWidth,
-        height: window.innerHeight - 10,
+        height: window.innerHeight - 5,
         parent: 'game-container',
-        scene: CorrosionGame,
-        physics: { default: 'arcade' }
+        scene: CorrosionGame
       };
 
-      game = new Phaser.Game(config);
+      new Phaser.Game(config);
 
-      // Botones
-      document.getElementById('reset-btn').addEventListener('click', () => {
-        if (confirm("¿Reiniciar el nivel actual?")) {
-          gameData.strikes = 0;
-          game.scene.restart();
-        }
-      });
+      document.getElementById('reset-btn').onclick = () => {
+        if (confirm("¿Reiniciar nivel?")) location.reload();
+      };
 
-      document.getElementById('close-modal').addEventListener('click', () => {
+      document.getElementById('close-modal').onclick = () => {
         document.getElementById('inspection-modal').style.display = 'none';
-      });
+      };
     };
   </script>
 </body>
