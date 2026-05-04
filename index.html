@@ -2,30 +2,43 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CorroPac: Industrial Maze</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>CorroPac MOBILE</title>
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
   <style>
-    body { margin:0; background:#000; color:#00ff9d; font-family: 'Courier New', monospace; overflow:hidden; }
+    body { margin:0; background:#000; color:#00ff9d; font-family: sans-serif; overflow:hidden; touch-action: none; }
     #ui {
-      position: absolute; top: 0; left: 0; right: 0; z-index: 100;
-      background: rgba(10,20,40,0.9); padding: 10px; text-align: center; border-bottom: 2px solid #00ff9d;
+      position: absolute; top: 0; width: 100%; z-index: 100;
+      background: rgba(10,20,40,0.9); padding: 8px 0; text-align: center; border-bottom: 2px solid #00ff9d;
     }
-    #hud { font-size: 1.2em; display: flex; justify-content: center; gap: 20px; }
+    #hud { font-size: 1em; display: flex; justify-content: center; gap: 15px; font-weight: bold; }
+    
+    /* MODAL MÓVIL */
     .modal {
       display:none; position:fixed; top:0; left:0; right:0; bottom:0;
-      background:rgba(0,0,0,0.9); z-index:200; align-items:center; justify-content:center;
+      background:rgba(0,0,0,0.95); z-index:2000; align-items:center; justify-content:center;
     }
     .modal-content {
-      background:#0a1f2f; padding:20px; border-radius:10px; max-width:500px; width:90%;
+      background:#0d1b2a; padding:15px; border-radius:10px; width:85%; max-width:400px;
       border:3px solid #00ff9d; text-align:center;
     }
-    #corrosion-image { width:100%; border-radius:8px; border:2px solid #555; }
+    #corrosion-image { width:100%; border-radius:8px; margin: 10px 0; }
     .opt-btn {
-      width:100%; padding:12px; margin:8px 0; background:#1a2a44; border:2px solid #00ff9d; color:#00ff9d;
-      cursor:pointer; font-weight:bold;
+      width:100%; padding:12px; margin:5px 0; background:#1b263b; border:2px solid #00ff9d; color:#00ff9d;
+      font-size: 1em; font-weight: bold; border-radius: 5px;
     }
-    .opt-btn:hover { background:#00ff9d; color:#000; }
+
+    /* CONTROLES TÁCTILES */
+    #mobile-controls {
+      position: fixed; bottom: 20px; left: 0; right: 0;
+      display: flex; justify-content: center; gap: 10px; z-index: 150;
+    }
+    .joy-btn {
+      width: 65px; height: 65px; background: rgba(0, 255, 157, 0.2);
+      border: 2px solid #00ff9d; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 24px; color: #00ff9d; user-select: none;
+    }
   </style>
 </head>
 <body>
@@ -33,199 +46,156 @@
 <div id="ui">
   <div id="hud">
     <span>💰 $<span id="money">1500</span></span>
-    <span>🏭 Nivel: <span id="level">1</span></span>
-    <span>⚠️ Strikes: <span id="strikes">0</span>/4</span>
+    <span>❤️ <span id="lives">❤️❤️❤️</span></span>
+    <span>🏭 Lv: <span id="level">1</span></span>
   </div>
 </div>
 
 <div id="inspection-modal" class="modal">
   <div class="modal-content">
-    <h2 id="modal-title">⚠️ REPORTE DE DAÑO</h2>
+    <h3 style="margin:0; color: #00ff9d;">INSPECCIÓN DE CAMPO</h3>
     <img id="corrosion-image" src="">
-    <p id="modal-description"></p>
+    <p id="modal-description" style="font-size: 0.8em; color: #ccc;"></p>
     <div id="options-container"></div>
+  </div>
+</div>
+
+<div id="mobile-controls">
+  <div style="display: grid; grid-template-columns: 70px 70px 70px; gap: 5px;">
+    <div></div><div class="joy-btn" id="up">▲</div><div></div>
+    <div class="joy-btn" id="left">◀</div><div class="joy-btn" id="down">▼</div><div class="joy-btn" id="right">▶</div>
   </div>
 </div>
 
 <script>
     const gameData = {
-        money: 1500, strikes: 0, level: 1, isPaused: false,
+        money: 1500, lives: 3, level: 1, isPaused: false,
+        input: { up: false, down: false, left: false, right: false },
         levels: [
-            { defects: 3, speed: 180, enemySpeed: 100, color: 0x00ff88 },
-            { defects: 5, speed: 200, enemySpeed: 130, color: 0x00ccff },
-            { defects: 7, speed: 220, enemySpeed: 160, color: 0xff0055 }
+            { defects: 3, speed: 160, enemySpeed: 80 },
+            { defects: 5, speed: 180, enemySpeed: 100 },
+            { defects: 7, speed: 200, enemySpeed: 120 }
         ]
     };
 
     class CorroPac extends Phaser.Scene {
         constructor() { super('CorroPac'); }
 
-        preload() {
-            // Aquí podrías cargar imágenes reales de tus carpetas si quisieras
-        }
-
         create() {
             const config = gameData.levels[gameData.level - 1];
-            
-            // Laberinto Industrial (Paredes sólidas)
+            this.physics.world.setBounds(0, 60, window.innerWidth, window.innerHeight - 150);
+
+            // Laberinto
             this.walls = this.physics.add.staticGroup();
             this.createMaze();
 
-            // Jugador
-            this.player = this.add.circle(50, 80, 15, 0xffff00);
+            // Inspector
+            this.player = this.add.container(50, 100);
+            this.player.add([this.add.circle(0, 0, 15, 0x00ff9d).setStrokeStyle(2, 0xffffff), this.add.text(-10, -18, '👷', {fontSize:'22px'})]);
             this.physics.add.existing(this.player);
-            this.player.body.setCollideWorldBounds(true);
-            
-            // Colisión Jugador <-> Paredes
+            this.player.body.setCircle(15, -15, -15).setCollideWorldBounds(true);
             this.physics.add.collider(this.player, this.walls);
 
-            // Enemigos (Pepas de Corrosión)
+            // Daños (Pepas)
             this.enemies = this.physics.add.group();
             for(let i=0; i < config.defects; i++) {
-                let x = Phaser.Math.Between(200, window.innerWidth - 50);
-                let y = Phaser.Math.Between(200, window.innerHeight - 50);
-                let enemy = this.add.circle(x, y, 12, 0xff0000);
+                let enemy = this.add.container(Phaser.Math.Between(200, window.innerWidth-50), Phaser.Math.Between(150, window.innerHeight-200));
+                enemy.add(this.add.text(-12, -12, '⚠️', {fontSize:'24px'}));
                 this.physics.add.existing(enemy);
-                enemy.body.setCollideWorldBounds(true);
-                enemy.body.setBounce(1);
+                enemy.body.setCircle(12, -12, -12).setCollideWorldBounds(true).setBounce(1);
                 enemy.defData = this.getRandomDefect();
                 this.enemies.add(enemy);
             }
 
-            // Colisión Enemigos <-> Paredes
             this.physics.add.collider(this.enemies, this.walls);
-
-            // IMPACTO: Jugador contra Pepa
             this.physics.add.overlap(this.player, this.enemies, this.hitEnemy, null, this);
 
-            this.cursors = this.input.keyboard.createCursorKeys();
+            // Setup Controles Móviles
+            const setup = (id, key) => {
+                const btn = document.getElementById(id);
+                btn.ontouchstart = (e) => { e.preventDefault(); gameData.input[key] = true; };
+                btn.ontouchend = () => gameData.input[key] = false;
+            };
+            ['up','down','left','right'].forEach(k => setup(k, k));
         }
 
         createMaze() {
-            // Dibujamos un laberinto tipo tuberías
             const w = window.innerWidth;
             const h = window.innerHeight;
-            
-            // Marcos
-            const wallColor = 0x334155;
-            const data = [
-                [w/2, 150, w*0.8, 20], // Horizontal superior
-                [200, h/2, 20, h*0.6], // Vertical izquierda
-                [w-200, h/2, 20, h*0.6], // Vertical derecha
-                [w/2, h-100, w*0.5, 20], // Horizontal inferior
-                [w/2, h/2, 150, 20], // Centro
-                [400, 300, 20, 150]  // Obstáculo extra
-            ];
-
-            data.forEach(pos => {
-                let rect = this.add.rectangle(pos[0], pos[1], pos[2], pos[3], wallColor);
-                this.walls.add(rect);
-            });
+            const layout = [[w/2, h/2, 20, h/3], [w/4, h/2, w/3, 20], [w*0.75, h/4, 20, h/4]];
+            layout.forEach(p => this.walls.add(this.add.rectangle(p[0], p[1], p[2], p[3], 0x1b263b)));
         }
 
         getRandomDefect() {
             const types = [
-                {type:"uniforme", img:"https://picsum.photos/id/1015/400/250", desc:"Ataque en toda la superficie expuesta."},
-                {type:"pitting", img:"https://picsum.photos/id/201/400/250", desc:"Cavidades pequeñas pero muy profundas."},
-                {type:"galvanica", img:"https://picsum.photos/id/866/400/250", desc:"Ocurre por contacto de dos metales distintos."},
-                {type:"erosion", img:"https://picsum.photos/id/1016/400/250", desc:"Daño por alta turbulencia de fluido."}
+                {type:"uniforme", img:"https://picsum.photos/id/1015/300/200", desc:"Corrosión generalizada."},
+                {type:"pitting", img:"https://picsum.photos/id/201/300/200", desc:"Picaduras profundas."},
+                {type:"galvánica", img:"https://picsum.photos/id/866/300/200", desc:"Par galvánico."},
+                {type:"erosión", img:"https://picsum.photos/id/1016/300/200", desc:"Erosión-corrosión."}
             ];
             return types[Math.floor(Math.random()*types.length)];
         }
 
         update() {
-            if (gameData.isPaused) {
-                this.player.body.setVelocity(0);
-                this.enemies.children.iterate(e => e.body.setVelocity(0));
-                return;
-            }
-
-            const speed = gameData.levels[gameData.level-1].speed;
-            const enemySpeed = gameData.levels[gameData.level-1].enemySpeed;
-
-            // Movimiento Jugador
-            this.player.body.setVelocity(0);
-            if (this.cursors.left.isDown) this.player.body.setVelocityX(-speed);
-            else if (this.cursors.right.isDown) this.player.body.setVelocityX(speed);
+            if (gameData.isPaused) { this.player.body.setVelocity(0); this.enemies.children.iterate(e => {if(e.body) e.body.setVelocity(0)}); return; }
             
-            if (this.cursors.up.isDown) this.player.body.setVelocityY(-speed);
-            else if (this.cursors.down.isDown) this.player.body.setVelocityY(speed);
+            const speed = gameData.levels[gameData.level-1].speed;
+            this.player.body.setVelocity(0);
+            if (gameData.input.left) this.player.body.setVelocityX(-speed);
+            else if (gameData.input.right) this.player.body.setVelocityX(speed);
+            if (gameData.input.up) this.player.body.setVelocityY(-speed);
+            else if (gameData.input.down) this.player.body.setVelocityY(speed);
 
-            // Enemigos persiguen
-            this.enemies.children.iterate(enemy => {
-                this.physics.moveToObject(enemy, this.player, enemySpeed);
-            });
+            this.enemies.children.iterate(e => { if(e.active) this.physics.moveToObject(e, this.player, gameData.levels[gameData.level-1].enemySpeed); });
         }
 
         hitEnemy(player, enemy) {
+            if (gameData.isPaused) return;
             gameData.isPaused = true;
-            this.showModal(enemy);
-        }
-
-        showModal(enemy) {
             const def = enemy.defData;
-            const modal = document.getElementById('inspection-modal');
             document.getElementById('corrosion-image').src = def.img;
             document.getElementById('modal-description').textContent = def.desc;
-            
             const container = document.getElementById('options-container');
             container.innerHTML = '';
-
-            const options = ["Uniforme", "Pitting", "Galvanica", "Erosion"];
-            options.forEach(opt => {
-                const btn = document.createElement('button');
-                btn.className = 'opt-btn';
-                btn.textContent = opt;
-                btn.onclick = () => {
-                    if(opt.toLowerCase() === def.type) {
-                        alert("✅ ¡CORRECTO!");
-                        gameData.money += 500;
+            ["Uniforme", "Pitting", "Galvánica", "Erosión"].forEach(opt => {
+                const b = document.createElement('button');
+                b.className = 'opt-btn';
+                b.textContent = opt;
+                b.onclick = () => {
+                    if(opt.toLowerCase() === def.type.toLowerCase()) {
                         enemy.destroy();
+                        gameData.money += 500;
                     } else {
-                        alert("❌ ¡INCORRECTO!");
-                        gameData.strikes++;
+                        gameData.lives--;
                         gameData.money -= 200;
                     }
-                    this.closeModal();
+                    document.getElementById('inspection-modal').style.display = 'none';
+                    this.checkGameState();
                 };
-                container.appendChild(btn);
+                container.appendChild(b);
             });
-            modal.style.display = 'flex';
+            document.getElementById('inspection-modal').style.display = 'flex';
         }
 
-        closeModal() {
-            document.getElementById('inspection-modal').style.display = 'none';
-            gameData.isPaused = false;
-            this.updateHUD();
-            
-            if(gameData.strikes >= 4) {
-                alert("GAME OVER - Planta Colapsada");
-                location.reload();
-            }
-            if(this.enemies.countActive() === 0) {
-                alert("Nivel Superado 🏭");
-                gameData.level++;
-                this.scene.restart();
-            }
-        }
-
-        updateHUD() {
+        checkGameState() {
             document.getElementById('money').textContent = gameData.money;
-            document.getElementById('level').textContent = gameData.level;
-            document.getElementById('strikes').textContent = gameData.strikes;
+            document.getElementById('lives').textContent = "❤️".repeat(gameData.lives);
+            if(gameData.lives <= 0) { alert("GAME OVER"); location.reload(); }
+            else { 
+                gameData.isPaused = false; 
+                if(this.enemies.countActive() === 0) { 
+                    gameData.level++; 
+                    alert("¡Nivel Superado!"); 
+                    this.scene.restart(); 
+                }
+            }
         }
     }
 
-    const config = {
-        type: Phaser.AUTO,
-        width: window.innerWidth,
-        height: window.innerHeight,
-        parent: 'game-container',
-        physics: { default: 'arcade', arcade: { debug: false } },
-        scene: CorroPac
-    };
-
-    new Phaser.Game(config);
+    new Phaser.Game({
+        type: Phaser.AUTO, width: window.innerWidth, height: window.innerHeight,
+        parent: 'game-container', physics: { default: 'arcade' }, scene: CorroPac
+    });
 </script>
 </body>
 </html>
