@@ -1,197 +1,40 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CORROSION EXPERT: INDUSTRIAL CRISIS</title>
-    <style>
-        :root { --neon: #0f0; --danger: #f00; --bg: #050505; }
-        body { margin: 0; background: var(--bg); font-family: 'Segoe UI', sans-serif; color: white; overflow: hidden; }
-        
-        /* HEADER INDUSTRIAL */
-        #header { 
-            position: fixed; top: 0; width: 100%; height: 60px; 
-            background: #111; border-bottom: 2px solid var(--neon);
-            display: flex; justify-content: space-around; align-items: center; z-index: 1000;
-        }
-
-        /* ESCENARIO DINÁMICO */
-        #game-container { position: relative; width: 100vw; height: 100vh; perspective: 1000px; }
-        #pipe {
-            position: absolute; bottom: 35%; width: 6000px; height: 120px;
-            background: linear-gradient(180deg, #444, #111);
-            border-top: 4px solid #777; transition: transform 0.1s linear;
-        }
-
-        /* PERSONAJE */
-        #avatar {
-            position: absolute; bottom: calc(35% + 110px); left: 80px;
-            font-size: 70px; z-index: 50; transition: transform 0.2s;
-            filter: drop-shadow(0 0 10px rgba(0,255,0,0.5));
-        }
-
-        /* PUNTOS DE FALLA */
-        .hazard {
-            position: absolute; top: -50px; width: 70px; height: 70px;
-            cursor: pointer; display: flex; align-items: center; justify-content: center;
-            font-size: 40px; border-radius: 50%;
-            background: rgba(255, 0, 0, 0.2); border: 2px solid var(--danger);
-            animation: pulse 1s infinite;
-        }
-
-        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.2); box-shadow: 0 0 30px var(--danger); } 100% { transform: scale(1); } }
-
-        /* MODALES Y UI */
-        #quiz-overlay {
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.9); z-index: 2000; align-items: center; justify-content: center;
-        }
-        #card {
-            background: #111; border: 3px solid var(--neon); width: 90%; max-width: 500px;
-            padding: 20px; border-radius: 15px; text-align: center;
-        }
-        #card img { width: 100%; border-radius: 10px; margin: 15px 0; border: 1px solid #333; }
-        .opt {
-            display: block; width: 100%; padding: 15px; margin: 10px 0;
-            background: #222; border: 1px solid var(--neon); color: var(--neon);
-            font-weight: bold; cursor: pointer; transition: 0.2s;
-        }
-        .opt:hover { background: var(--neon); color: black; }
-
-        /* BOTONES MÓVIL */
-        #controls { position: fixed; bottom: 40px; width: 100%; display: flex; justify-content: space-evenly; }
-        .joy-btn {
-            width: 100px; height: 100px; background: rgba(0, 255, 0, 0.15);
-            border: 3px solid var(--neon); border-radius: 50%; color: var(--neon);
-            font-size: 40px; display: flex; align-items: center; justify-content: center;
-            touch-action: none;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CorroDetective - Inspector de Corrosión</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
 </head>
 <body>
-
-<div id="header">
-    <div>NIVEL: <span id="lvl">1</span></div>
-    <div>PRESUPUESTO: $<span id="score">2000</span></div>
-    <div>ESTADO: <span id="status">ESTABLE</span></div>
-</div>
-
-<div id="game-container">
-    <div id="avatar">👷</div>
-    <div id="pipe"></div>
-    
-    <div id="controls">
-        <div class="joy-btn" id="btn-left">◀</div>
-        <div class="joy-btn" id="btn-right">▶</div>
+  <div id="ui-overlay">
+    <h1>🛠️ CorroDetective</h1>
+    <div id="hud">
+      <span>Dinero: $<span id="money">1500</span></span>
+      <span>Nivel: <span id="level">1</span></span>
+      <span>Strikes: <span id="strikes">0</span>/3</span>
     </div>
-</div>
+    <button id="reset-btn" style="margin-top:8px; padding:8px 16px;">Reiniciar Nivel</button>
+  </div>
 
-<div id="quiz-overlay">
-    <div id="card">
-        <h2 id="q-zone" style="color: var(--neon); margin:0;">ZONA DE PELIGRO</h2>
-        <img id="q-img" src="">
-        <p id="q-desc" style="color: #ccc; font-style: italic;"></p>
-        <div id="q-options"></div>
+  <div id="game-container"></div>
+
+  <!-- Modal de Inspección -->
+  <div id="inspection-modal" class="modal">
+    <div class="modal-content">
+      <h2 id="modal-title">Inspección en curso...</h2>
+      <img id="corrosion-image" src="" alt="Corrosión" style="width:100%; max-height:300px; border-radius:8px;">
+      <p id="modal-description"></p>
+      
+      <div id="options-container"></div>
+      
+      <button id="close-modal" style="margin-top:15px;">Cerrar</button>
     </div>
-</div>
+  </div>
 
-<script>
-    let currentX = 0;
-    let isWalking = 0;
-    let score = 2000;
-    let currentLevel = 1;
-    const pipe = document.getElementById('pipe');
-    const avatar = document.getElementById('avatar');
-
-    // NIVELES Y DESAFÍOS (Aquí es donde pones tus fotos)
-    const levels = {
-        1: [ // NIVEL 1: El Muelle
-            { x: 800, img: "galvanica.jpg", desc: "Tornillos de acero en casco de aluminio. ¿Qué ves?", opts: ["Ataque Galvánico", "Picaduras", "Desgaste Mecánico"], correct: 0 },
-            { x: 1600, img: "atmosferica.jpg", desc: "Vigas expuestas a brisa marina. Oxidación naranja uniforme.", opts: ["Erosión", "Corrosión Atmosférica", "SCC"], correct: 1 }
-        ],
-        2: [ // NIVEL 2: Planta Química
-            { x: 2500, img: "pitting.jpg", desc: "Pequeños puntos negros que atraviesan la pared.", opts: ["Intergranular", "Picaduras (Pitting)", "Uniforme"], correct: 1 },
-            { x: 3500, img: "intergranular.jpg", desc: "Falla en el borde de la soldadura (ZAT).", opts: ["Intergranular", "Galvánica", "Fatiga"], correct: 0 }
-        ]
-    };
-
-    // Cargar desafíos en el mapa
-    function loadHazards() {
-        pipe.innerHTML = '';
-        levels[currentLevel].forEach((h, i) => {
-            const div = document.createElement('div');
-            div.className = 'hazard';
-            div.style.left = h.x + 'px';
-            div.innerHTML = '⚠️';
-            div.onclick = () => showQuiz(i);
-            pipe.appendChild(div);
-        });
-    }
-    loadHazards();
-
-    // Motor de movimiento
-    function update() {
-        if(isWalking !== 0) {
-            currentX -= isWalking * 10;
-            if(currentX > 0) currentX = 0;
-            pipe.style.transform = `translateX(${currentX}px)`;
-        }
-        requestAnimationFrame(update);
-    }
-    update();
-
-    // Eventos de botones
-    const setupControl = (id, dir) => {
-        const btn = document.getElementById(id);
-        const start = (e) => { e.preventDefault(); isWalking = dir; avatar.style.transform = `scaleX(${dir})`; };
-        const end = () => isWalking = 0;
-        btn.addEventListener('touchstart', start); btn.addEventListener('touchend', end);
-        btn.addEventListener('mousedown', start); btn.addEventListener('mouseup', end);
-    };
-    setupControl('btn-left', -1); setupControl('btn-right', 1);
-
-    function showQuiz(index) {
-        isWalking = 0;
-        const q = levels[currentLevel][index];
-        document.getElementById('q-img').src = q.img;
-        document.getElementById('q-desc').innerText = q.desc;
-        const container = document.getElementById('q-options');
-        container.innerHTML = '';
-        
-        q.opts.forEach((opt, i) => {
-            const b = document.createElement('button');
-            b.className = 'opt';
-            b.innerText = opt;
-            b.onclick = () => check(index, i);
-            container.appendChild(b);
-        });
-        document.getElementById('quiz-overlay').style.display = 'flex';
-    }
-
-    function check(qIdx, selected) {
-        const q = levels[currentLevel][qIdx];
-        document.getElementById('quiz-overlay').style.display = 'none';
-        
-        if(selected === q.correct) {
-            score += 500;
-            alert("✅ DIAGNÓSTICO CORRECTO. Se aplican inhibidores de corrosión.");
-            // Verificar si terminó nivel
-            if(qIdx === levels[currentLevel].length - 1 && currentLevel < 2) {
-                currentLevel++;
-                alert("🚢 NIVEL 1 COMPLETADO. Viajando a la Planta Química...");
-                currentX = 0;
-                document.getElementById('lvl').innerText = currentLevel;
-                loadHazards();
-            }
-        } else {
-            score -= 800;
-            document.body.style.background = "red";
-            setTimeout(() => document.body.style.background = "#050505", 200);
-            alert("💥 ERROR CRÍTICO. Fuga de químicos detectada.");
-        }
-        document.getElementById('score').innerText = score;
-        if(score <= 0) { alert("☣️ PLANTA COLAPSADA. Tu licencia de inspector ha sido revocada."); location.reload(); }
-    }
-</script>
+  <script src="js/data.js"></script>
+  <script src="js/game.js"></script>
+  <script src="js/main.js"></script>
 </body>
 </html>
