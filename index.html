@@ -3,49 +3,34 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CorroDetective - Inspector de Corrosión</title>
+  <title>CorroPac - Inspector de Tuberías</title>
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
   <style>
-    body { margin:0; background:#000; color:#00ff9d; font-family: 'Segoe UI', sans-serif; overflow:hidden; }
-    #ui-overlay {
-      position: absolute; top: 0; left: 0; right: 0; z-index: 100;
-      background: rgba(10,20,40,0.95); padding: 10px; text-align:center; border-bottom: 3px solid #00ff9d;
-    }
-    h1 { margin:0; font-size:2.6em; text-shadow: 0 0 20px #00ff9d; }
-    #hud { font-size:1.4em; margin:8px 0; }
-    button { padding:10px 20px; font-size:1.1em; background:#006633; color:white; border:none; border-radius:8px; cursor:pointer; }
-    button:hover { background:#00ff9d; color:black; }
-
-    .modal {
-      display:none; position:fixed; top:0; left:0; right:0; bottom:0;
-      background:rgba(0,0,0,0.95); z-index:200; align-items:center; justify-content:center;
-    }
-    .modal-content {
-      background:#0f1f33; padding:25px; border-radius:15px; max-width:750px; width:92%;
-      border:4px solid #00ff9d; text-align:center;
-    }
-    #corrosion-image { width:100%; max-height:380px; border-radius:10px; margin:15px 0; border:2px solid #555; }
-    #options-container button {
-      width:100%; padding:16px; margin:10px 0; font-size:1.2em; background:#1a2a44; border:2px solid #00cc88; color:#00ff9d;
-    }
-    #options-container button:hover { background:#00aa77; }
+    body { margin:0; background:#000; color:#00ff9d; font-family:Arial, sans-serif; overflow:hidden; }
+    #ui { position:absolute; top:0; left:0; right:0; z-index:100; background:rgba(10,20,40,0.95); padding:10px; text-align:center; border-bottom:3px solid #00ff9d; }
+    h1 { margin:0; font-size:2.4em; }
+    #hud { font-size:1.3em; margin:8px 0; }
+    button { padding:8px 16px; background:#006633; color:white; border:none; border-radius:6px; cursor:pointer; }
+    .modal { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.95); z-index:200; align-items:center; justify-content:center; }
+    .modal-content { background:#0f1f33; padding:25px; border-radius:15px; max-width:720px; width:90%; border:4px solid #00ff9d; text-align:center; }
+    #corrosion-image { width:100%; max-height:360px; border-radius:10px; margin:15px 0; }
+    #options-container button { width:100%; padding:14px; margin:10px 0; font-size:1.15em; background:#1a2a44; border:2px solid #00cc88; color:#00ff9d; }
   </style>
 </head>
 <body>
-  <div id="ui-overlay">
-    <h1>🔧 CorroDetective</h1>
-    <div id="hud">Dinero: $<span id="money">1500</span> | Nivel: <span id="level">1</span> | Strikes: <span id="strikes">0</span>/3</div>
+  <div id="ui">
+    <h1>🪖 CorroPac - Inspector de Tuberías</h1>
+    <div id="hud">Dinero: $<span id="money">1200</span> | Nivel: <span id="level">1</span> | Strikes: <span id="strikes">0</span>/3 | Fallas: <span id="defects">0</span>/<span id="total">0</span></div>
     <button id="reset-btn">Reiniciar Nivel</button>
   </div>
 
   <div id="game-container"></div>
 
-  <!-- Modal -->
   <div id="inspection-modal" class="modal">
     <div class="modal-content">
-      <h2 id="modal-title"></h2>
+      <h2 id="modal-title">🔍 Falla Detectada</h2>
       <img id="corrosion-image" src="" alt="Corrosión">
-      <p id="modal-description" style="font-size:1.15em; margin:15px 0;"></p>
+      <p id="modal-description"></p>
       <div id="options-container"></div>
       <button id="close-modal" style="margin-top:15px;">Cerrar</button>
     </div>
@@ -53,145 +38,177 @@
 
   <script>
     const gameData = {
-      money: 1500,
+      money: 1200,
       strikes: 0,
       level: 1,
-      levels: [{
-        id: 1,
-        name: "Tanque de Almacenamiento - Nivel 1",
-        background: "#0a1f1a",
-        bgImage: "https://picsum.photos/id/1015/1920/1080",
-        areas: [
-          { x:320, y:280, w:150, h:110, name:"Base del Tanque", type:"uniforme",
-            image:"https://picsum.photos/id/1015/800/500",
-            desc:"Daño uniforme en toda la superficie inferior.",
-            options: [
-              {text:"Corrosión Uniforme", correct:true},
-              {text:"Pitting", correct:false},
-              {text:"Corrosión Galvánica", correct:false},
-              {text:"Corrosión por Grieta", correct:false}
-            ]
-          },
-          { x:580, y:420, w:140, h:95, name:"Zona de Soldadura", type:"galvanica",
-            image:"https://picsum.photos/id/201/800/500",
-            desc:"Corrosión acelerada cerca de la unión de metales.",
-            options: [
-              {text:"Corrosión Uniforme", correct:false},
-              {text:"Pitting", correct:false},
-              {text:"Corrosión Galvánica", correct:true},
-              {text:"Corrosión por Grieta", correct:false}
-            ]
-          },
-          { x:180, y:480, w:120, h:85, name:"Junta Superior", type:"crevice",
-            image:"https://picsum.photos/id/866/800/500",
-            desc:"Daño concentrado en una grieta o junta.",
-            options: [
-              {text:"Corrosión Uniforme", correct:false},
-              {text:"Pitting", correct:false},
-              {text:"Corrosión Galvánica", correct:false},
-              {text:"Corrosión por Grieta", correct:true}
-            ]
-          }
-        ]
-      }]
+      defectsFound: 0,
+      levels: [
+        {
+          name: "Tubería Principal - Nivel 1",
+          bgColor: "#0a1f1a",
+          playerSpeed: 180,
+          defects: [
+            {x:300, y:200, type:"uniforme", image:"https://picsum.photos/id/1015/800/500", desc:"Daño uniforme en las paredes.", options:[{text:"Corrosión Uniforme",correct:true},{text:"Pitting",correct:false},{text:"Galvánica",correct:false},{text:"Crevice",correct:false}]},
+            {x:600, y:400, type:"galvanica", image:"https://picsum.photos/id/201/800/500", desc:"Corrosión cerca de una unión metálica.", options:[{text:"Corrosión Uniforme",correct:false},{text:"Pitting",correct:false},{text:"Galvánica",correct:true},{text:"Crevice",correct:false}]},
+            {x:450, y:150, type:"pitting", image:"https://picsum.photos/id/866/800/500", desc:"Pequeños hoyos profundos.", options:[{text:"Corrosión Uniforme",correct:false},{text:"Pitting",correct:true},{text:"Galvánica",correct:false},{text:"Crevice",correct:false}]}
+          ]
+        },
+        {
+          name: "Tubería Offshore - Nivel 2",
+          bgColor: "#1a1f3a",
+          playerSpeed: 200,
+          defects: [
+            {x:250, y:300, type:"crevice", image:"https://picsum.photos/id/1015/800/500", desc:"Corrosión en junta.", options:[{text:"Crevice",correct:true},{text:"Pitting",correct:false},{text:"Uniforme",correct:false},{text:"Galvánica",correct:false}]},
+            {x:550, y:250, type:"pitting", image:"https://picsum.photos/id/201/800/500", desc:"Hoyos concentrados.", options:[{text:"Pitting",correct:true},{text:"Crevice",correct:false},{text:"Uniforme",correct:false},{text:"Galvánica",correct:false}]},
+            {x:400, y:450, type:"uniforme", image:"https://picsum.photos/id/866/800/500", desc:"Desgaste general.", options:[{text:"Uniforme",correct:true},{text:"Pitting",correct:false},{text:"Crevice",correct:false},{text:"Galvánica",correct:false}]},
+            {x:700, y:180, type:"galvanica", image:"https://picsum.photos/id/1015/800/500", desc:"Corrosión por contacto de metales.", options:[{text:"Galvánica",correct:true},{text:"Uniforme",correct:false},{text:"Pitting",correct:false},{text:"Crevice",correct:false}]}
+          ]
+        },
+        {
+          name: "Refinería - Nivel 3 (Difícil)",
+          bgColor: "#3a1f1a",
+          playerSpeed: 220,
+          defects: [
+            {x:200, y:200, type:"pitting", image:"https://picsum.photos/id/201/800/500", desc:"Pitting severo bajo aislamiento.", options:[{text:"Pitting",correct:true},{text:"Uniforme",correct:false},{text:"Crevice",correct:false},{text:"Galvánica",correct:false}]},
+            {x:500, y:350, type:"crevice", image:"https://picsum.photos/id/866/800/500", desc:"Corrosión en grieta.", options:[{text:"Crevice",correct:true},{text:"Pitting",correct:false},{text:"Uniforme",correct:false},{text:"Galvánica",correct:false}]},
+            {x:650, y:280, type:"galvanica", image:"https://picsum.photos/id/1015/800/500", desc:"Contacto entre metales diferentes.", options:[{text:"Galvánica",correct:true},{text:"Pitting",correct:false},{text:"Uniforme",correct:false},{text:"Crevice",correct:false}]}
+          ]
+        }
+      ]
     };
 
-    class CorrosionGame extends Phaser.Scene {
-      constructor() { super('CorrosionGame'); }
+    class CorroPac extends Phaser.Scene {
+      constructor() { super('CorroPac'); }
 
       create() {
-        // Fondo
-        this.add.image(window.innerWidth/2, window.innerHeight/2, 'background').setDisplaySize(window.innerWidth, window.innerHeight);
-        
-        this.add.text(50, 80, gameData.levels[0].name, {fontSize:'28px', color:'#00ff9d', fontStyle:'bold'}).setShadow(3,3,'#000',5);
+        this.level = gameData.levels[gameData.level-1];
+        this.cameras.main.setBackgroundColor(this.level.bgColor);
 
-        gameData.levels[0].areas.forEach(area => {
-          const rect = this.add.rectangle(area.x, area.y, area.w, area.h, 0xffaa00, 0.35)
-            .setInteractive({useHandCursor:true})
-            .setStrokeStyle(6, 0xff0000);
+        this.add.text(50, 50, this.level.name, {fontSize:'26px', color:'#00ff9d', fontStyle:'bold'});
 
-          rect.areaData = area;
+        // Jugador (Inspector con casco)
+        this.player = this.add.rectangle(100, 300, 35, 35, 0x00ff9d).setStrokeStyle(4, 0xffffff);
+        this.physics.add.existing(this.player);
+        this.player.body.setCollideWorldBounds(true);
 
-          rect.on('pointerover', () => rect.setAlpha(0.8));
-          rect.on('pointerout', () => rect.setAlpha(1));
-          rect.on('pointerdown', () => this.inspectArea(area));
+        // Defectos (como puntos de Pac-Man)
+        this.defects = [];
+        this.level.defects.forEach((def, i) => {
+          const dot = this.add.circle(def.x, def.y, 18, 0xff0000);
+          dot.defData = def;
+          dot.setInteractive();
+          this.defects.push(dot);
         });
+
+        this.defectsRemaining = this.level.defects.length;
+        document.getElementById('total').textContent = this.defectsRemaining;
+
+        // Controles
+        this.cursors = this.input.keyboard.createCursorKeys();
 
         this.updateHUD();
       }
 
-      inspectArea(area) {
-        document.getElementById('modal-title').innerHTML = `🔍 Inspección: <b>${area.name}</b>`;
-        document.getElementById('corrosion-image').src = area.image;
-        document.getElementById('modal-description').textContent = area.desc;
+      update() {
+        const speed = this.level.playerSpeed;
+        const body = this.player.body;
+
+        if (this.cursors.left.isDown) body.setVelocityX(-speed);
+        else if (this.cursors.right.isDown) body.setVelocityX(speed);
+        else body.setVelocityX(0);
+
+        if (this.cursors.up.isDown) body.setVelocityY(-speed);
+        else if (this.cursors.down.isDown) body.setVelocityY(speed);
+        else body.setVelocityY(0);
+
+        // Revisar colisiones con defectos
+        this.defects.forEach((dot, index) => {
+          if (dot.active && Phaser.Geom.Intersects.RectangleToRectangle(this.player.getBounds(), dot.getBounds())) {
+            this.inspectDefect(dot, index);
+          }
+        });
+
+        // Completar nivel
+        if (this.defectsRemaining <= 0) {
+          this.completeLevel();
+        }
+      }
+
+      inspectDefect(dot, index) {
+        const def = dot.defData;
+        document.getElementById('modal-title').textContent = `Falla: ${def.type.toUpperCase()}`;
+        document.getElementById('corrosion-image').src = def.image;
+        document.getElementById('modal-description').textContent = def.desc;
 
         const container = document.getElementById('options-container');
         container.innerHTML = '';
 
-        area.options.forEach(opt => {
+        def.options.forEach(opt => {
           const btn = document.createElement('button');
           btn.textContent = opt.text;
-          btn.onclick = () => this.checkAnswer(opt, area);
+          btn.onclick = () => this.checkAnswer(opt, def, dot, index);
           container.appendChild(btn);
         });
 
         document.getElementById('inspection-modal').style.display = 'flex';
       }
 
-      checkAnswer(option, area) {
-        const modal = document.getElementById('inspection-modal');
-        
+      checkAnswer(option, def, dot, index) {
         if (option.correct) {
-          alert("✅ ¡Excelente! Identificación correcta.");
-          gameData.money += 450;
-          this.showBossMessage("Buen trabajo inspector, sigues así y te subo el bono.");
+          alert("✅ ¡Correcto! Buen diagnóstico.");
+          gameData.money += 380;
         } else {
-          alert(`❌ Error. Era: ${area.type.toUpperCase()}`);
+          alert("❌ Incorrecto. Era " + def.type.toUpperCase());
           gameData.strikes++;
-          gameData.money -= 320;
-          this.showBossMessage("¿Otra vez? ¡Concéntrate o me vas a arruinar la planta!");
+          gameData.money -= 280;
         }
 
+        dot.destroy();
+        this.defectsRemaining--;
         this.updateHUD();
-        modal.style.display = 'none';
+
+        document.getElementById('inspection-modal').style.display = 'none';
 
         if (gameData.strikes >= 3) {
-          alert("💥 NIVEL FALLADO - Demasiados errores. El Jefe está decepcionado.");
-          gameData.strikes = 0;
-          gameData.money = 800;
+          alert("💥 ¡Demasiados errores! Nivel fallado.");
+          location.reload();
         }
       }
 
-      showBossMessage(msg) {
-        setTimeout(() => alert("👔 Jefe: " + msg), 300);
+      completeLevel() {
+        alert(`¡Nivel ${gameData.level} Completado! 🎉`);
+        gameData.level++;
+        if (gameData.level > 3) {
+          alert("¡FELICIDADES! Has completado todos los niveles.");
+          gameData.level = 1;
+        }
+        location.reload();
       }
 
       updateHUD() {
         document.getElementById('money').textContent = gameData.money;
+        document.getElementById('level').textContent = gameData.level;
         document.getElementById('strikes').textContent = gameData.strikes;
+        document.getElementById('defects').textContent = this.defectsRemaining || 0;
       }
     }
 
-    // Iniciar juego
     window.onload = () => {
       const config = {
         type: Phaser.AUTO,
         width: window.innerWidth,
         height: window.innerHeight,
         parent: 'game-container',
-        scene: CorrosionGame,
-        physics: { default: 'arcade' }
+        scene: CorroPac,
+        physics: { default: 'arcade', arcade: { debug: false } }
       };
 
-      const game = new Phaser.Game(config);
-
-      // Precargar fondo
-      game.scene.scenes[0].load.image('background', 'https://picsum.photos/id/1015/1920/1080');
+      new Phaser.Game(config);
 
       document.getElementById('reset-btn').onclick = () => location.reload();
       document.getElementById('close-modal').onclick = () => document.getElementById('inspection-modal').style.display = 'none';
 
-      alert("¡Bienvenido a CorroDetective!\n\nBusca los rectángulos rojos en la planta y haz clic para inspeccionar.");
+      alert("¡Bienvenido a CorroPac!\n\nUsa las flechas del teclado para mover al inspector dentro de la tubería.\nEncuentra y diagnostica todas las fallas rojas.");
     };
   </script>
 </body>
