@@ -6,21 +6,40 @@
   <title>CorroPac - Inspector de Tuberías</title>
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
   <style>
-    body { margin:0; background:#000; color:#00ff9d; font-family:Arial, sans-serif; overflow:hidden; }
-    #ui { position:absolute; top:0; left:0; right:0; z-index:100; background:rgba(10,20,40,0.95); padding:10px; text-align:center; border-bottom:3px solid #00ff9d; }
-    h1 { margin:0; font-size:2.4em; }
-    #hud { font-size:1.3em; margin:8px 0; }
-    button { padding:8px 16px; background:#006633; color:white; border:none; border-radius:6px; cursor:pointer; }
-    .modal { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.95); z-index:200; align-items:center; justify-content:center; }
-    .modal-content { background:#0f1f33; padding:25px; border-radius:15px; max-width:720px; width:90%; border:4px solid #00ff9d; text-align:center; }
-    #corrosion-image { width:100%; max-height:360px; border-radius:10px; margin:15px 0; }
-    #options-container button { width:100%; padding:14px; margin:10px 0; font-size:1.15em; background:#1a2a44; border:2px solid #00cc88; color:#00ff9d; }
+    body { margin:0; background:#000; color:#00ff9d; font-family: 'Segoe UI', Arial, sans-serif; overflow:hidden; }
+    #ui {
+      position: absolute; top: 0; left: 0; right: 0; z-index: 100;
+      background: rgba(10,20,40,0.97); padding: 12px; text-align: center; border-bottom: 4px solid #00ff9d;
+    }
+    h1 { margin:0; font-size: 2.5em; text-shadow: 0 0 20px #00ff9d; }
+    #hud { font-size: 1.4em; margin: 10px 0; display: flex; justify-content: center; gap: 35px; flex-wrap: wrap; }
+    button { padding: 10px 20px; background:#006633; color:white; border:none; border-radius:8px; cursor:pointer; font-size:1.1em; }
+    button:hover { background:#00ff9d; color:black; }
+
+    .modal {
+      display:none; position:fixed; top:0; left:0; right:0; bottom:0;
+      background:rgba(0,0,0,0.96); z-index:200; align-items:center; justify-content:center;
+    }
+    .modal-content {
+      background:#0a1f2f; padding:30px; border-radius:16px; max-width:740px; width:92%;
+      border:5px solid #00ff9d; text-align:center; box-shadow: 0 0 30px #00ff9d;
+    }
+    #corrosion-image { width:100%; max-height:380px; border-radius:12px; margin:15px 0; border:3px solid #555; }
+    #options-container button {
+      width:100%; padding:16px; margin:12px 0; font-size:1.2em; background:#1a2a44; border:3px solid #00cc88; color:#00ff9d; border-radius:8px;
+    }
+    #options-container button:hover { background:#00aa77; transform: scale(1.03); }
   </style>
 </head>
 <body>
   <div id="ui">
     <h1>🪖 CorroPac - Inspector de Tuberías</h1>
-    <div id="hud">Dinero: $<span id="money">1200</span> | Nivel: <span id="level">1</span> | Strikes: <span id="strikes">0</span>/3 | Fallas: <span id="defects">0</span>/<span id="total">0</span></div>
+    <div id="hud">
+      <span>Dinero: $<span id="money">1500</span></span>
+      <span>Nivel: <span id="level">1</span></span>
+      <span>Strikes: <span id="strikes">0</span>/4</span>
+      <span>Fallas: <span id="defects">0</span>/<span id="total">0</span></span>
+    </div>
     <button id="reset-btn">Reiniciar Nivel</button>
   </div>
 
@@ -28,52 +47,23 @@
 
   <div id="inspection-modal" class="modal">
     <div class="modal-content">
-      <h2 id="modal-title">🔍 Falla Detectada</h2>
+      <h2 id="modal-title">🔍 ¡Falla Detectada!</h2>
       <img id="corrosion-image" src="" alt="Corrosión">
-      <p id="modal-description"></p>
+      <p id="modal-description" style="font-size:1.2em; margin:20px 0;"></p>
       <div id="options-container"></div>
-      <button id="close-modal" style="margin-top:15px;">Cerrar</button>
+      <button id="close-modal" style="margin-top:20px; padding:12px 30px;">Cerrar</button>
     </div>
   </div>
 
   <script>
     const gameData = {
-      money: 1200,
+      money: 1500,
       strikes: 0,
       level: 1,
-      defectsFound: 0,
       levels: [
-        {
-          name: "Tubería Principal - Nivel 1",
-          bgColor: "#0a1f1a",
-          playerSpeed: 180,
-          defects: [
-            {x:300, y:200, type:"uniforme", image:"https://picsum.photos/id/1015/800/500", desc:"Daño uniforme en las paredes.", options:[{text:"Corrosión Uniforme",correct:true},{text:"Pitting",correct:false},{text:"Galvánica",correct:false},{text:"Crevice",correct:false}]},
-            {x:600, y:400, type:"galvanica", image:"https://picsum.photos/id/201/800/500", desc:"Corrosión cerca de una unión metálica.", options:[{text:"Corrosión Uniforme",correct:false},{text:"Pitting",correct:false},{text:"Galvánica",correct:true},{text:"Crevice",correct:false}]},
-            {x:450, y:150, type:"pitting", image:"https://picsum.photos/id/866/800/500", desc:"Pequeños hoyos profundos.", options:[{text:"Corrosión Uniforme",correct:false},{text:"Pitting",correct:true},{text:"Galvánica",correct:false},{text:"Crevice",correct:false}]}
-          ]
-        },
-        {
-          name: "Tubería Offshore - Nivel 2",
-          bgColor: "#1a1f3a",
-          playerSpeed: 200,
-          defects: [
-            {x:250, y:300, type:"crevice", image:"https://picsum.photos/id/1015/800/500", desc:"Corrosión en junta.", options:[{text:"Crevice",correct:true},{text:"Pitting",correct:false},{text:"Uniforme",correct:false},{text:"Galvánica",correct:false}]},
-            {x:550, y:250, type:"pitting", image:"https://picsum.photos/id/201/800/500", desc:"Hoyos concentrados.", options:[{text:"Pitting",correct:true},{text:"Crevice",correct:false},{text:"Uniforme",correct:false},{text:"Galvánica",correct:false}]},
-            {x:400, y:450, type:"uniforme", image:"https://picsum.photos/id/866/800/500", desc:"Desgaste general.", options:[{text:"Uniforme",correct:true},{text:"Pitting",correct:false},{text:"Crevice",correct:false},{text:"Galvánica",correct:false}]},
-            {x:700, y:180, type:"galvanica", image:"https://picsum.photos/id/1015/800/500", desc:"Corrosión por contacto de metales.", options:[{text:"Galvánica",correct:true},{text:"Uniforme",correct:false},{text:"Pitting",correct:false},{text:"Crevice",correct:false}]}
-          ]
-        },
-        {
-          name: "Refinería - Nivel 3 (Difícil)",
-          bgColor: "#3a1f1a",
-          playerSpeed: 220,
-          defects: [
-            {x:200, y:200, type:"pitting", image:"https://picsum.photos/id/201/800/500", desc:"Pitting severo bajo aislamiento.", options:[{text:"Pitting",correct:true},{text:"Uniforme",correct:false},{text:"Crevice",correct:false},{text:"Galvánica",correct:false}]},
-            {x:500, y:350, type:"crevice", image:"https://picsum.photos/id/866/800/500", desc:"Corrosión en grieta.", options:[{text:"Crevice",correct:true},{text:"Pitting",correct:false},{text:"Uniforme",correct:false},{text:"Galvánica",correct:false}]},
-            {x:650, y:280, type:"galvanica", image:"https://picsum.photos/id/1015/800/500", desc:"Contacto entre metales diferentes.", options:[{text:"Galvánica",correct:true},{text:"Pitting",correct:false},{text:"Uniforme",correct:false},{text:"Crevice",correct:false}]}
-          ]
-        }
+        { name: "Nivel 1 - Tubería Básica", bg: "#0a1f1a", speed: 180, enemySpeed: 90, defects: 3 },
+        { name: "Nivel 2 - Offshore", bg: "#1a1f3a", speed: 200, enemySpeed: 110, defects: 4 },
+        { name: "Nivel 3 - Refinería (EXTREMO)", bg: "#3a1f1a", speed: 210, enemySpeed: 140, defects: 5 }
       ]
     };
 
@@ -81,61 +71,92 @@
       constructor() { super('CorroPac'); }
 
       create() {
-        this.level = gameData.levels[gameData.level-1];
-        this.cameras.main.setBackgroundColor(this.level.bgColor);
+        const lvl = gameData.levels[gameData.level-1];
+        this.cameras.main.setBackgroundColor(lvl.bg);
 
-        this.add.text(50, 50, this.level.name, {fontSize:'26px', color:'#00ff9d', fontStyle:'bold'});
+        this.add.text(50, 40, lvl.name, {fontSize:'28px', color:'#00ff9d', fontStyle:'bold'}).setShadow(4,4,'#000',8);
 
-        // Jugador (Inspector con casco)
-        this.player = this.add.rectangle(100, 300, 35, 35, 0x00ff9d).setStrokeStyle(4, 0xffffff);
+        // === Jugador (Inspector mejorado) ===
+        this.player = this.add.circle(150, 300, 22, 0x00ff88);
+        this.player.setStrokeStyle(6, 0xffffff);
         this.physics.add.existing(this.player);
         this.player.body.setCollideWorldBounds(true);
 
-        // Defectos (como puntos de Pac-Man)
-        this.defects = [];
-        this.level.defects.forEach((def, i) => {
-          const dot = this.add.circle(def.x, def.y, 18, 0xff0000);
-          dot.defData = def;
-          dot.setInteractive();
-          this.defects.push(dot);
-        });
+        // Casco
+        this.helmet = this.add.rectangle(150, 280, 28, 12, 0xdddddd);
+        this.physics.add.existing(this.helmet);
 
-        this.defectsRemaining = this.level.defects.length;
-        document.getElementById('total').textContent = this.defectsRemaining;
+        // === Obstáculos ===
+        this.walls = this.physics.add.staticGroup();
+        this.createWalls();
 
-        // Controles
+        // === Enemigos (Fallas que persiguen) ===
+        this.enemies = [];
+        this.remaining = lvl.defects;
+        document.getElementById('total').textContent = this.remaining;
+
+        for (let i = 0; i < lvl.defects; i++) {
+          const enemy = this.add.circle(Phaser.Math.Between(400, 900), Phaser.Math.Between(150, 550), 18, 0xff2222);
+          this.physics.add.existing(enemy);
+          enemy.body.setVelocity(Phaser.Math.Between(-60,60), Phaser.Math.Between(-60,60));
+          enemy.defData = this.getRandomDefect();
+          this.enemies.push(enemy);
+        }
+
         this.cursors = this.input.keyboard.createCursorKeys();
-
         this.updateHUD();
       }
 
-      update() {
-        const speed = this.level.playerSpeed;
-        const body = this.player.body;
-
-        if (this.cursors.left.isDown) body.setVelocityX(-speed);
-        else if (this.cursors.right.isDown) body.setVelocityX(speed);
-        else body.setVelocityX(0);
-
-        if (this.cursors.up.isDown) body.setVelocityY(-speed);
-        else if (this.cursors.down.isDown) body.setVelocityY(speed);
-        else body.setVelocityY(0);
-
-        // Revisar colisiones con defectos
-        this.defects.forEach((dot, index) => {
-          if (dot.active && Phaser.Geom.Intersects.RectangleToRectangle(this.player.getBounds(), dot.getBounds())) {
-            this.inspectDefect(dot, index);
-          }
+      createWalls() {
+        // Paredes del laberinto
+        const wallsPos = [
+          [300,200,400,20], [600,300,20,300], [200,450,350,20],
+          [700,150,20,250], [450,500,300,20]
+        ];
+        wallsPos.forEach(([x,y,w,h]) => {
+          const wall = this.add.rectangle(x, y, w, h, 0x555577);
+          this.physics.add.existing(wall, true);
+          this.walls.add(wall);
         });
-
-        // Completar nivel
-        if (this.defectsRemaining <= 0) {
-          this.completeLevel();
-        }
       }
 
-      inspectDefect(dot, index) {
-        const def = dot.defData;
+      getRandomDefect() {
+        const types = [
+          {type:"uniforme", image:"https://picsum.photos/id/1015/800/500", desc:"Daño uniforme en la superficie interna."},
+          {type:"pitting", image:"https://picsum.photos/id/201/800/500", desc:"Pequeños hoyos profundos."},
+          {type:"galvanica", image:"https://picsum.photos/id/866/800/500", desc:"Corrosión por contacto de metales."},
+          {type:"crevice", image:"https://picsum.photos/id/1015/800/500", desc:"Corrosión concentrada en grietas."}
+        ];
+        return types[Math.floor(Math.random()*types.length)];
+      }
+
+      update() {
+        const speed = gameData.levels[gameData.level-1].speed;
+        const body = this.player.body;
+
+        body.setVelocity(0);
+        if (this.cursors.left.isDown) body.setVelocityX(-speed);
+        if (this.cursors.right.isDown) body.setVelocityX(speed);
+        if (this.cursors.up.isDown) body.setVelocityY(-speed);
+        if (this.cursors.down.isDown) body.setVelocityY(speed);
+
+        // Actualizar casco
+        this.helmet.setPosition(this.player.x, this.player.y - 25);
+
+        // Enemigos persiguen al jugador
+        this.enemies.forEach(enemy => {
+          if (!enemy.active) return;
+          this.physics.moveToObject(enemy, this.player, gameData.levels[gameData.level-1].enemySpeed);
+
+          // Colisión con jugador
+          if (Phaser.Geom.Intersects.CircleToCircle(this.player.getBounds(), enemy.getBounds())) {
+            this.inspectDefect(enemy);
+          }
+        });
+      }
+
+      inspectDefect(enemy) {
+        const def = enemy.defData;
         document.getElementById('modal-title').textContent = `Falla: ${def.type.toUpperCase()}`;
         document.getElementById('corrosion-image').src = def.image;
         document.getElementById('modal-description').textContent = def.desc;
@@ -143,43 +164,52 @@
         const container = document.getElementById('options-container');
         container.innerHTML = '';
 
-        def.options.forEach(opt => {
+        const options = [
+          {text:"Corrosión Uniforme", correct: def.type === "uniforme"},
+          {text:"Pitting", correct: def.type === "pitting"},
+          {text:"Corrosión Galvánica", correct: def.type === "galvanica"},
+          {text:"Corrosión por Grieta", correct: def.type === "crevice"}
+        ];
+
+        options.forEach(opt => {
           const btn = document.createElement('button');
           btn.textContent = opt.text;
-          btn.onclick = () => this.checkAnswer(opt, def, dot, index);
+          btn.onclick = () => this.checkAnswer(opt, enemy);
           container.appendChild(btn);
         });
 
         document.getElementById('inspection-modal').style.display = 'flex';
       }
 
-      checkAnswer(option, def, dot, index) {
+      checkAnswer(option, enemy) {
         if (option.correct) {
-          alert("✅ ¡Correcto! Buen diagnóstico.");
-          gameData.money += 380;
+          alert("✅ ¡Excelente diagnóstico!");
+          gameData.money += 420;
         } else {
-          alert("❌ Incorrecto. Era " + def.type.toUpperCase());
+          alert("❌ Error de diagnóstico.");
           gameData.strikes++;
-          gameData.money -= 280;
+          gameData.money -= 300;
         }
 
-        dot.destroy();
-        this.defectsRemaining--;
-        this.updateHUD();
+        enemy.destroy();
+        this.remaining--;
 
+        this.updateHUD();
         document.getElementById('inspection-modal').style.display = 'none';
 
-        if (gameData.strikes >= 3) {
-          alert("💥 ¡Demasiados errores! Nivel fallado.");
+        if (gameData.strikes >= 4) {
+          alert("💥 ¡Demasiados errores! Game Over.");
           location.reload();
         }
+
+        if (this.remaining <= 0) this.completeLevel();
       }
 
       completeLevel() {
-        alert(`¡Nivel ${gameData.level} Completado! 🎉`);
+        alert(`¡Nivel ${gameData.level} Completado con éxito! 🎉`);
         gameData.level++;
         if (gameData.level > 3) {
-          alert("¡FELICIDADES! Has completado todos los niveles.");
+          alert("🏆 ¡FELICIDADES! Has completado CorroPac.");
           gameData.level = 1;
         }
         location.reload();
@@ -189,7 +219,7 @@
         document.getElementById('money').textContent = gameData.money;
         document.getElementById('level').textContent = gameData.level;
         document.getElementById('strikes').textContent = gameData.strikes;
-        document.getElementById('defects').textContent = this.defectsRemaining || 0;
+        document.getElementById('defects').textContent = this.remaining;
       }
     }
 
@@ -208,7 +238,7 @@
       document.getElementById('reset-btn').onclick = () => location.reload();
       document.getElementById('close-modal').onclick = () => document.getElementById('inspection-modal').style.display = 'none';
 
-      alert("¡Bienvenido a CorroPac!\n\nUsa las flechas del teclado para mover al inspector dentro de la tubería.\nEncuentra y diagnostica todas las fallas rojas.");
+      alert("🎮 ¡Bienvenido a CorroPac!\n\nUsa las flechas para moverte.\nEvita las paredes y las fallas rojas te persiguen.\n¡Buena suerte inspector!");
     };
   </script>
 </body>
