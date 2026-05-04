@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Corrosion Quest: Inspector de Tuberías</title>
+    <style>
+        :root { --main-color: #3b82f6; --accent: #deff9a; }
+        body { margin: 0; padding: 0; background: #0f172a; font-family: 'Segoe UI', sans-serif; overflow: hidden; color: white; }
+        
+        /* ESCENARIO */
+        #game-world { position: relative; width: 100vw; height: 100vh; overflow: hidden; }
+        
+        #pipe-line {
+            position: absolute;
+            bottom: 35%;
+            width: 4000px; /* Tubería larga para caminar */
+            height: 100px;
+            background: linear-gradient(180deg, #64748b, #334155);
+            border-top: 4px solid #94a3b8;
+            transition: transform 0.1s ease-out;
+        }
+
+        /* AVATAR */
+        #avatar {
+            position: absolute;
+            bottom: calc(35% + 90px);
+            left: 50px;
+            font-size: 60px;
+            z-index: 100;
+            transition: transform 0.2s;
+        }
+
+        /* PUNTOS DE INSPECCIÓN (DAÑOS) */
+        .damage-point {
+            position: absolute;
+            top: -30px;
+            width: 60px;
+            height: 60px;
+            background: #b45309;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 30px;
+            cursor: pointer;
+            animation: pulse 1.5s infinite;
+        }
+
+        .damage-point.repaired {
+            background: #22c55e !important;
+            animation: none;
+            box-shadow: 0 0 20px #22c55e;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(180, 83, 9, 0.7); }
+            70% { transform: scale(1.2); box-shadow: 0 0 0 15px rgba(180, 83, 9, 0); }
+            100% { transform: scale(1); }
+        }
+
+        /* UI CONTROLES */
+        #ui-top { position: fixed; top: 20px; left: 20px; font-size: 24px; font-weight: bold; }
+        #score-val { color: var(--accent); }
+
+        #controls {
+            position: fixed;
+            bottom: 30px;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        .control-btn {
+            width: 80px;
+            height: 80px;
+            background: rgba(255,255,255,0.1);
+            border: 2px solid white;
+            border-radius: 50%;
+            color: white;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+            touch-action: none;
+        }
+
+        /* MODAL DE PREGUNTAS */
+        #quiz-card {
+            display: none;
+            position: fixed;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 85%;
+            max-width: 400px;
+            background: #1e293b;
+            padding: 20px;
+            border-radius: 20px;
+            border: 3px solid var(--accent);
+            z-index: 1000;
+            text-align: center;
+        }
+
+        #quiz-card img { width: 100%; border-radius: 10px; margin-bottom: 15px; }
+        .opt-btn {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            background: #334155;
+            color: white;
+            border: 1px solid #475569;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-world">
+    <div id="ui-top">REPUTACIÓN INSPECTOR: <span id="score-val">0</span></div>
+    
+    <div id="avatar">👷‍♂️</div>
+    
+    <div id="pipe-line">
+        </div>
+
+    <div id="controls">
+        <div class="control-btn" id="btn-left">◀</div>
+        <div class="control-btn" id="btn-right">▶</div>
+    </div>
+</div>
+
+<div id="quiz-card">
+    <h3 id="q-title">¿Qué tipo de daño es?</h3>
+    <img id="q-img" src="" alt="Corrosión">
+    <div id="q-options"></div>
+</div>
+
+<script>
+    let score = 0;
+    let playerX = 0;
+    let worldX = 0;
+    const pipe = document.getElementById('pipe-line');
+    const avatar = document.getElementById('avatar');
+    const quizCard = document.getElementById('quiz-card');
+
+    // DATOS DEL JUEGO (Aquí subes tus imágenes)
+    const damages = [
+        { x: 500, type: "Picaduras", img: "https://via.placeholder.com/300x200?text=Imagen+Pitting", options: ["Picaduras", "Galvánica", "Uniforme"], correct: 0 },
+        { x: 1200, type: "Galvánica", img: "https://via.placeholder.com/300x200?text=Imagen+Galvanica", options: ["Erosión", "Galvánica", "Intergranular"], correct: 1 },
+        { x: 1800, type: "Erosión", img: "https://via.placeholder.com/300x200?text=Imagen+Erosion", options: ["Esfuerzo", "Picaduras", "Erosión-Corrosión"], correct: 2 }
+    ];
+
+    // Generar puntos en la tubería
+    damages.forEach((d, i) => {
+        const div = document.createElement('div');
+        div.className = 'damage-point';
+        div.style.left = d.x + 'px';
+        div.innerHTML = '🔍';
+        div.id = 'damage-' + i;
+        div.onclick = () => openInspection(i);
+        pipe.appendChild(div);
+    });
+
+    // Movimiento
+    let moveDir = 0;
+    function update() {
+        if(moveDir !== 0) {
+            worldX -= moveDir * 7;
+            // Limitar movimiento
+            if(worldX > 0) worldX = 0;
+            pipe.style.transform = `translateX(${worldX}px)`;
+            
+            // Animación simple de caminado
+            avatar.style.transform = `scaleX(${moveDir > 0 ? 1 : -1})`;
+        }
+        requestAnimationFrame(update);
+    }
+    update();
+
+    // Controles táctiles
+    const setupBtn = (id, dir) => {
+        const btn = document.getElementById(id);
+        const start = (e) => { e.preventDefault(); moveDir = dir; };
+        const end = () => { moveDir = 0; };
+        btn.addEventListener('touchstart', start);
+        btn.addEventListener('touchend', end);
+        btn.addEventListener('mousedown', start);
+        btn.addEventListener('mouseup', end);
+    };
+    setupBtn('btn-left', -1);
+    setupBtn('btn-right', 1);
+
+    function openInspection(index) {
+        moveDir = 0;
+        const d = damages[index];
+        const dot = document.getElementById('damage-' + index);
+        if(dot.classList.contains('repaired')) return;
+
+        document.getElementById('q-img').src = d.img;
+        const opts = document.getElementById('q-options');
+        opts.innerHTML = '';
+        
+        d.options.forEach((opt, i) => {
+            const b = document.createElement('button');
+            b.className = 'opt-btn';
+            b.innerText = opt;
+            b.onclick = () => {
+                if(i === d.correct) {
+                    score += 100;
+                    dot.classList.add('repaired');
+                    dot.innerHTML = '✅';
+                    alert("¡Excelente diagnóstico! Reparando sección...");
+                } else {
+                    score -= 50;
+                    alert("Error. El daño se extiende. -50 pts");
+                }
+                document.getElementById('score-val').innerText = score;
+                quizCard.style.display = 'none';
+            };
+            opts.appendChild(b);
+        });
+        quizCard.style.display = 'block';
+    }
+</script>
+
+</body>
+</html>
