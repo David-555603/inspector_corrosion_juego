@@ -14,7 +14,7 @@
     }
     #hud { display: flex; justify-content: center; gap: 15px; font-weight: bold; font-size: 14px; }
     .modal {
-      display:none; position:fixed; top:0; left:0; right:0; bottom:0;
+      display:flex; position:fixed; top:0; left:0; right:0; bottom:0;
       background:rgba(0,0,0,0.95); z-index:2000; align-items:center; justify-content:center;
     }
     .modal-content {
@@ -34,6 +34,7 @@
       display: flex; align-items: center; justify-content: center;
       font-size: 20px; color: #fff; touch-action: none;
     }
+    .inst-text { color: #ccc; text-align: left; font-size: 13px; line-height: 1.4; }
   </style>
 </head>
 <body>
@@ -46,7 +47,20 @@
   </div>
 </div>
 
-<div id="inspection-modal" class="modal">
+<div id="intro-modal" class="modal">
+  <div class="modal-content">
+    <h2 style="color: #00ff00; margin-top: 0;">MANUAL DE MISIÓN</h2>
+    <div class="inst-text">
+      <p>• <b>OBJETIVO:</b> Recolecta las 10 herramientas 🔧 o elimina todas las alertas ⚠️ para asegurar el sector.</p>
+      <p>• <b>ALERTAS:</b> Las fallas te perseguirán. Si te tocan, deberás identificar el tipo de corrosión.</p>
+      <p>• <b>PELIGRO:</b> Si respondes mal en el análisis, <b>perderás una vida</b> ❤️.</p>
+      <p>• <b>CONTROLES:</b> Usa el D-Pad inferior para moverte por las tuberías.</p>
+    </div>
+    <button class="opt-btn" onclick="startGame()">INICIAR INSPECCIÓN</button>
+  </div>
+</div>
+
+<div id="inspection-modal" class="modal" style="display: none;">
   <div class="modal-content">
     <h3 style="margin:0; color: #00ff00;">ANALIZANDO FALLA</h3>
     <img id="corrosion-image" src="">
@@ -64,7 +78,7 @@
 
 <script>
     const gameData = {
-        lives: 3, level: 1, isPaused: false, toolsCollected: 0,
+        lives: 3, level: 1, isPaused: true, toolsCollected: 0,
         input: { up: false, down: false, left: false, right: false },
         levels: [
             { speed: 160, enemySpeed: 65, enemyCount: 3, map: [
@@ -82,6 +96,11 @@
         ]
     };
 
+    function startGame() {
+        document.getElementById('intro-modal').style.display = 'none';
+        gameData.isPaused = false;
+    }
+
     class CorroPac extends Phaser.Scene {
         constructor() { super('CorroPac'); }
 
@@ -91,7 +110,6 @@
             const config = gameData.levels[gameData.level - 1];
             
             gameData.toolsCollected = 0;
-            gameData.isPaused = false;
             document.getElementById('level').textContent = gameData.level;
             document.getElementById('lives').textContent = "❤️".repeat(gameData.lives);
 
@@ -124,16 +142,14 @@
                     if (val === 1) {
                         this.walls.add(this.add.rectangle(posX, posY, cellW-2, cellH-2, 0x0055ff).setStrokeStyle(1, 0x00ffff));
                     } else {
-                        // Spawn Inspector en la primera celda libre
                         if (!spawnFound) {
                             this.player = this.add.container(posX, posY);
                             this.player.add([this.add.circle(0, 0, 11, 0xffff00), this.add.text(-9, -12, '👷', {fontSize:'16px'})]);
                             this.physics.add.existing(this.player);
-                            this.player.body.setCircle(11, -11, -11).setCollideWorldBounds(false);
+                            this.player.body.setCircle(11, -11, -11);
                             spawnFound = true;
                         }
-                        // Solo colocar 10 herramientas por nivel
-                        if (this.tools.getLength() < 10 && Math.random() > 0.5) {
+                        if (this.tools.getLength() < 10 && Math.random() > 0.4) {
                             let t = this.add.text(posX-10, posY-12, '🔧', {fontSize:'18px'});
                             this.physics.add.existing(t);
                             this.tools.add(t);
@@ -142,17 +158,8 @@
                 });
             });
 
-            // Asegurar 10 herramientas si el random falló
-            while(this.tools.getLength() < 10) {
-                let rx = Phaser.Math.Between(1, 8) * cellW + cellW/2;
-                let ry = Phaser.Math.Between(1, 5) * cellH + offsetY;
-                let t = this.add.text(rx-10, ry-12, '🔧', {fontSize:'18px'});
-                this.physics.add.existing(t);
-                this.tools.add(t);
-            }
             document.getElementById('tools-count').textContent = `0/10`;
 
-            // Spawn Enemigos en esquinas
             for(let i=0; i<config.enemyCount; i++) {
                 let ex = (i%2==0) ? cellW*1.5 : cellW*8.5;
                 let ey = (i<2) ? offsetY + cellH : offsetY + (cellH * (map.length-2));
@@ -176,15 +183,11 @@
             if (gameData.input.up) this.player.body.setVelocityY(-config.speed);
             else if (gameData.input.down) this.player.body.setVelocityY(config.speed);
 
-            // Teletransporte lateral
             if (this.player.x < -10) this.player.x = w + 10;
             if (this.player.x > w + 10) this.player.x = -10;
 
-            // IA: Las alertas persiguen al inspector
             this.enemies.children.iterate(e => {
-                if(e && e.active) {
-                    this.physics.moveToObject(e, this.player, config.enemySpeed);
-                }
+                if(e && e.active) this.physics.moveToObject(e, this.player, config.enemySpeed);
             });
         }
 
@@ -210,8 +213,12 @@
                 const btn = document.createElement('button');
                 btn.className = 'opt-btn'; btn.textContent = opt;
                 btn.onclick = () => {
-                    if(opt.toLowerCase() === def.type.toLowerCase()) { e.destroy(); }
-                    else { gameData.lives--; }
+                    if(opt.toLowerCase() === def.type.toLowerCase()) { 
+                        e.destroy(); // Acierto: Elimina alerta
+                    } else { 
+                        gameData.lives--; // Error: Pierde vida
+                        document.getElementById('lives').textContent = "❤️".repeat(Math.max(0, gameData.lives));
+                    }
                     document.getElementById('inspection-modal').style.display = 'none';
                     gameData.isPaused = false;
                     this.checkWinCondition();
@@ -222,17 +229,19 @@
         }
 
         checkWinCondition() {
-            document.getElementById('lives').textContent = "❤️".repeat(gameData.lives);
-            if(gameData.lives <= 0) { alert("SISTEMA COLAPSADO"); location.reload(); return; }
+            if(gameData.lives <= 0) { 
+                alert("SISTEMA COLAPSADO: PLANTA CERRADA"); 
+                location.reload(); 
+                return; 
+            }
 
-            // Gana si: Recolecta todas las herramientas O elimina todas las alertas
             if(gameData.toolsCollected >= 10 || this.enemies.countActive() === 0) {
                 if(gameData.level < 3) {
                     gameData.level++;
-                    alert("¡SECTOR DESPEJADO! Siguiente nivel.");
+                    alert("¡SECTOR DESPEJADO!");
                     this.scene.restart();
                 } else {
-                    alert("¡FELICIDADES! Planta 100% Segura.");
+                    alert("¡FELICIDADES! ERES UN INSPECTOR MAESTRO.");
                     location.reload();
                 }
             }
