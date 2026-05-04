@@ -3,243 +3,229 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CorroPac - Inspector de Tuberías</title>
+  <title>CorroPac: Industrial Maze</title>
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
   <style>
-    body { margin:0; background:#000; color:#00ff9d; font-family: 'Segoe UI', Arial, sans-serif; overflow:hidden; }
+    body { margin:0; background:#000; color:#00ff9d; font-family: 'Courier New', monospace; overflow:hidden; }
     #ui {
       position: absolute; top: 0; left: 0; right: 0; z-index: 100;
-      background: rgba(10,20,40,0.97); padding: 12px; text-align: center; border-bottom: 4px solid #00ff9d;
+      background: rgba(10,20,40,0.9); padding: 10px; text-align: center; border-bottom: 2px solid #00ff9d;
     }
-    h1 { margin:0; font-size: 2.5em; text-shadow: 0 0 20px #00ff9d; }
-    #hud { font-size: 1.4em; margin: 10px 0; display: flex; justify-content: center; gap: 35px; flex-wrap: wrap; }
-    button { padding: 10px 20px; background:#006633; color:white; border:none; border-radius:8px; cursor:pointer; font-size:1.1em; }
-    button:hover { background:#00ff9d; color:black; }
-
+    #hud { font-size: 1.2em; display: flex; justify-content: center; gap: 20px; }
     .modal {
       display:none; position:fixed; top:0; left:0; right:0; bottom:0;
-      background:rgba(0,0,0,0.96); z-index:200; align-items:center; justify-content:center;
+      background:rgba(0,0,0,0.9); z-index:200; align-items:center; justify-content:center;
     }
     .modal-content {
-      background:#0a1f2f; padding:30px; border-radius:16px; max-width:740px; width:92%;
-      border:5px solid #00ff9d; text-align:center; box-shadow: 0 0 30px #00ff9d;
+      background:#0a1f2f; padding:20px; border-radius:10px; max-width:500px; width:90%;
+      border:3px solid #00ff9d; text-align:center;
     }
-    #corrosion-image { width:100%; max-height:380px; border-radius:12px; margin:15px 0; border:3px solid #555; }
-    #options-container button {
-      width:100%; padding:16px; margin:12px 0; font-size:1.2em; background:#1a2a44; border:3px solid #00cc88; color:#00ff9d; border-radius:8px;
+    #corrosion-image { width:100%; border-radius:8px; border:2px solid #555; }
+    .opt-btn {
+      width:100%; padding:12px; margin:8px 0; background:#1a2a44; border:2px solid #00ff9d; color:#00ff9d;
+      cursor:pointer; font-weight:bold;
     }
-    #options-container button:hover { background:#00aa77; transform: scale(1.03); }
+    .opt-btn:hover { background:#00ff9d; color:#000; }
   </style>
 </head>
 <body>
-  <div id="ui">
-    <h1>🪖 CorroPac - Inspector de Tuberías</h1>
-    <div id="hud">
-      <span>Dinero: $<span id="money">1500</span></span>
-      <span>Nivel: <span id="level">1</span></span>
-      <span>Strikes: <span id="strikes">0</span>/4</span>
-      <span>Fallas: <span id="defects">0</span>/<span id="total">0</span></span>
-    </div>
-    <button id="reset-btn">Reiniciar Nivel</button>
+
+<div id="ui">
+  <div id="hud">
+    <span>💰 $<span id="money">1500</span></span>
+    <span>🏭 Nivel: <span id="level">1</span></span>
+    <span>⚠️ Strikes: <span id="strikes">0</span>/4</span>
   </div>
+</div>
 
-  <div id="game-container"></div>
-
-  <div id="inspection-modal" class="modal">
-    <div class="modal-content">
-      <h2 id="modal-title">🔍 ¡Falla Detectada!</h2>
-      <img id="corrosion-image" src="" alt="Corrosión">
-      <p id="modal-description" style="font-size:1.2em; margin:20px 0;"></p>
-      <div id="options-container"></div>
-      <button id="close-modal" style="margin-top:20px; padding:12px 30px;">Cerrar</button>
-    </div>
+<div id="inspection-modal" class="modal">
+  <div class="modal-content">
+    <h2 id="modal-title">⚠️ REPORTE DE DAÑO</h2>
+    <img id="corrosion-image" src="">
+    <p id="modal-description"></p>
+    <div id="options-container"></div>
   </div>
+</div>
 
-  <script>
+<script>
     const gameData = {
-      money: 1500,
-      strikes: 0,
-      level: 1,
-      levels: [
-        { name: "Nivel 1 - Tubería Básica", bg: "#0a1f1a", speed: 180, enemySpeed: 90, defects: 3 },
-        { name: "Nivel 2 - Offshore", bg: "#1a1f3a", speed: 200, enemySpeed: 110, defects: 4 },
-        { name: "Nivel 3 - Refinería (EXTREMO)", bg: "#3a1f1a", speed: 210, enemySpeed: 140, defects: 5 }
-      ]
+        money: 1500, strikes: 0, level: 1, isPaused: false,
+        levels: [
+            { defects: 3, speed: 180, enemySpeed: 100, color: 0x00ff88 },
+            { defects: 5, speed: 200, enemySpeed: 130, color: 0x00ccff },
+            { defects: 7, speed: 220, enemySpeed: 160, color: 0xff0055 }
+        ]
     };
 
     class CorroPac extends Phaser.Scene {
-      constructor() { super('CorroPac'); }
+        constructor() { super('CorroPac'); }
 
-      create() {
-        const lvl = gameData.levels[gameData.level-1];
-        this.cameras.main.setBackgroundColor(lvl.bg);
-
-        this.add.text(50, 40, lvl.name, {fontSize:'28px', color:'#00ff9d', fontStyle:'bold'}).setShadow(4,4,'#000',8);
-
-        // === Jugador (Inspector mejorado) ===
-        this.player = this.add.circle(150, 300, 22, 0x00ff88);
-        this.player.setStrokeStyle(6, 0xffffff);
-        this.physics.add.existing(this.player);
-        this.player.body.setCollideWorldBounds(true);
-
-        // Casco
-        this.helmet = this.add.rectangle(150, 280, 28, 12, 0xdddddd);
-        this.physics.add.existing(this.helmet);
-
-        // === Obstáculos ===
-        this.walls = this.physics.add.staticGroup();
-        this.createWalls();
-
-        // === Enemigos (Fallas que persiguen) ===
-        this.enemies = [];
-        this.remaining = lvl.defects;
-        document.getElementById('total').textContent = this.remaining;
-
-        for (let i = 0; i < lvl.defects; i++) {
-          const enemy = this.add.circle(Phaser.Math.Between(400, 900), Phaser.Math.Between(150, 550), 18, 0xff2222);
-          this.physics.add.existing(enemy);
-          enemy.body.setVelocity(Phaser.Math.Between(-60,60), Phaser.Math.Between(-60,60));
-          enemy.defData = this.getRandomDefect();
-          this.enemies.push(enemy);
+        preload() {
+            // Aquí podrías cargar imágenes reales de tus carpetas si quisieras
         }
 
-        this.cursors = this.input.keyboard.createCursorKeys();
-        this.updateHUD();
-      }
+        create() {
+            const config = gameData.levels[gameData.level - 1];
+            
+            // Laberinto Industrial (Paredes sólidas)
+            this.walls = this.physics.add.staticGroup();
+            this.createMaze();
 
-      createWalls() {
-        // Paredes del laberinto
-        const wallsPos = [
-          [300,200,400,20], [600,300,20,300], [200,450,350,20],
-          [700,150,20,250], [450,500,300,20]
-        ];
-        wallsPos.forEach(([x,y,w,h]) => {
-          const wall = this.add.rectangle(x, y, w, h, 0x555577);
-          this.physics.add.existing(wall, true);
-          this.walls.add(wall);
-        });
-      }
+            // Jugador
+            this.player = this.add.circle(50, 80, 15, 0xffff00);
+            this.physics.add.existing(this.player);
+            this.player.body.setCollideWorldBounds(true);
+            
+            // Colisión Jugador <-> Paredes
+            this.physics.add.collider(this.player, this.walls);
 
-      getRandomDefect() {
-        const types = [
-          {type:"uniforme", image:"https://picsum.photos/id/1015/800/500", desc:"Daño uniforme en la superficie interna."},
-          {type:"pitting", image:"https://picsum.photos/id/201/800/500", desc:"Pequeños hoyos profundos."},
-          {type:"galvanica", image:"https://picsum.photos/id/866/800/500", desc:"Corrosión por contacto de metales."},
-          {type:"crevice", image:"https://picsum.photos/id/1015/800/500", desc:"Corrosión concentrada en grietas."}
-        ];
-        return types[Math.floor(Math.random()*types.length)];
-      }
+            // Enemigos (Pepas de Corrosión)
+            this.enemies = this.physics.add.group();
+            for(let i=0; i < config.defects; i++) {
+                let x = Phaser.Math.Between(200, window.innerWidth - 50);
+                let y = Phaser.Math.Between(200, window.innerHeight - 50);
+                let enemy = this.add.circle(x, y, 12, 0xff0000);
+                this.physics.add.existing(enemy);
+                enemy.body.setCollideWorldBounds(true);
+                enemy.body.setBounce(1);
+                enemy.defData = this.getRandomDefect();
+                this.enemies.add(enemy);
+            }
 
-      update() {
-        const speed = gameData.levels[gameData.level-1].speed;
-        const body = this.player.body;
+            // Colisión Enemigos <-> Paredes
+            this.physics.add.collider(this.enemies, this.walls);
 
-        body.setVelocity(0);
-        if (this.cursors.left.isDown) body.setVelocityX(-speed);
-        if (this.cursors.right.isDown) body.setVelocityX(speed);
-        if (this.cursors.up.isDown) body.setVelocityY(-speed);
-        if (this.cursors.down.isDown) body.setVelocityY(speed);
+            // IMPACTO: Jugador contra Pepa
+            this.physics.add.overlap(this.player, this.enemies, this.hitEnemy, null, this);
 
-        // Actualizar casco
-        this.helmet.setPosition(this.player.x, this.player.y - 25);
-
-        // Enemigos persiguen al jugador
-        this.enemies.forEach(enemy => {
-          if (!enemy.active) return;
-          this.physics.moveToObject(enemy, this.player, gameData.levels[gameData.level-1].enemySpeed);
-
-          // Colisión con jugador
-          if (Phaser.Geom.Intersects.CircleToCircle(this.player.getBounds(), enemy.getBounds())) {
-            this.inspectDefect(enemy);
-          }
-        });
-      }
-
-      inspectDefect(enemy) {
-        const def = enemy.defData;
-        document.getElementById('modal-title').textContent = `Falla: ${def.type.toUpperCase()}`;
-        document.getElementById('corrosion-image').src = def.image;
-        document.getElementById('modal-description').textContent = def.desc;
-
-        const container = document.getElementById('options-container');
-        container.innerHTML = '';
-
-        const options = [
-          {text:"Corrosión Uniforme", correct: def.type === "uniforme"},
-          {text:"Pitting", correct: def.type === "pitting"},
-          {text:"Corrosión Galvánica", correct: def.type === "galvanica"},
-          {text:"Corrosión por Grieta", correct: def.type === "crevice"}
-        ];
-
-        options.forEach(opt => {
-          const btn = document.createElement('button');
-          btn.textContent = opt.text;
-          btn.onclick = () => this.checkAnswer(opt, enemy);
-          container.appendChild(btn);
-        });
-
-        document.getElementById('inspection-modal').style.display = 'flex';
-      }
-
-      checkAnswer(option, enemy) {
-        if (option.correct) {
-          alert("✅ ¡Excelente diagnóstico!");
-          gameData.money += 420;
-        } else {
-          alert("❌ Error de diagnóstico.");
-          gameData.strikes++;
-          gameData.money -= 300;
+            this.cursors = this.input.keyboard.createCursorKeys();
         }
 
-        enemy.destroy();
-        this.remaining--;
+        createMaze() {
+            // Dibujamos un laberinto tipo tuberías
+            const w = window.innerWidth;
+            const h = window.innerHeight;
+            
+            // Marcos
+            const wallColor = 0x334155;
+            const data = [
+                [w/2, 150, w*0.8, 20], // Horizontal superior
+                [200, h/2, 20, h*0.6], // Vertical izquierda
+                [w-200, h/2, 20, h*0.6], // Vertical derecha
+                [w/2, h-100, w*0.5, 20], // Horizontal inferior
+                [w/2, h/2, 150, 20], // Centro
+                [400, 300, 20, 150]  // Obstáculo extra
+            ];
 
-        this.updateHUD();
-        document.getElementById('inspection-modal').style.display = 'none';
-
-        if (gameData.strikes >= 4) {
-          alert("💥 ¡Demasiados errores! Game Over.");
-          location.reload();
+            data.forEach(pos => {
+                let rect = this.add.rectangle(pos[0], pos[1], pos[2], pos[3], wallColor);
+                this.walls.add(rect);
+            });
         }
 
-        if (this.remaining <= 0) this.completeLevel();
-      }
-
-      completeLevel() {
-        alert(`¡Nivel ${gameData.level} Completado con éxito! 🎉`);
-        gameData.level++;
-        if (gameData.level > 3) {
-          alert("🏆 ¡FELICIDADES! Has completado CorroPac.");
-          gameData.level = 1;
+        getRandomDefect() {
+            const types = [
+                {type:"uniforme", img:"https://picsum.photos/id/1015/400/250", desc:"Ataque en toda la superficie expuesta."},
+                {type:"pitting", img:"https://picsum.photos/id/201/400/250", desc:"Cavidades pequeñas pero muy profundas."},
+                {type:"galvanica", img:"https://picsum.photos/id/866/400/250", desc:"Ocurre por contacto de dos metales distintos."},
+                {type:"erosion", img:"https://picsum.photos/id/1016/400/250", desc:"Daño por alta turbulencia de fluido."}
+            ];
+            return types[Math.floor(Math.random()*types.length)];
         }
-        location.reload();
-      }
 
-      updateHUD() {
-        document.getElementById('money').textContent = gameData.money;
-        document.getElementById('level').textContent = gameData.level;
-        document.getElementById('strikes').textContent = gameData.strikes;
-        document.getElementById('defects').textContent = this.remaining;
-      }
+        update() {
+            if (gameData.isPaused) {
+                this.player.body.setVelocity(0);
+                this.enemies.children.iterate(e => e.body.setVelocity(0));
+                return;
+            }
+
+            const speed = gameData.levels[gameData.level-1].speed;
+            const enemySpeed = gameData.levels[gameData.level-1].enemySpeed;
+
+            // Movimiento Jugador
+            this.player.body.setVelocity(0);
+            if (this.cursors.left.isDown) this.player.body.setVelocityX(-speed);
+            else if (this.cursors.right.isDown) this.player.body.setVelocityX(speed);
+            
+            if (this.cursors.up.isDown) this.player.body.setVelocityY(-speed);
+            else if (this.cursors.down.isDown) this.player.body.setVelocityY(speed);
+
+            // Enemigos persiguen
+            this.enemies.children.iterate(enemy => {
+                this.physics.moveToObject(enemy, this.player, enemySpeed);
+            });
+        }
+
+        hitEnemy(player, enemy) {
+            gameData.isPaused = true;
+            this.showModal(enemy);
+        }
+
+        showModal(enemy) {
+            const def = enemy.defData;
+            const modal = document.getElementById('inspection-modal');
+            document.getElementById('corrosion-image').src = def.img;
+            document.getElementById('modal-description').textContent = def.desc;
+            
+            const container = document.getElementById('options-container');
+            container.innerHTML = '';
+
+            const options = ["Uniforme", "Pitting", "Galvanica", "Erosion"];
+            options.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = 'opt-btn';
+                btn.textContent = opt;
+                btn.onclick = () => {
+                    if(opt.toLowerCase() === def.type) {
+                        alert("✅ ¡CORRECTO!");
+                        gameData.money += 500;
+                        enemy.destroy();
+                    } else {
+                        alert("❌ ¡INCORRECTO!");
+                        gameData.strikes++;
+                        gameData.money -= 200;
+                    }
+                    this.closeModal();
+                };
+                container.appendChild(btn);
+            });
+            modal.style.display = 'flex';
+        }
+
+        closeModal() {
+            document.getElementById('inspection-modal').style.display = 'none';
+            gameData.isPaused = false;
+            this.updateHUD();
+            
+            if(gameData.strikes >= 4) {
+                alert("GAME OVER - Planta Colapsada");
+                location.reload();
+            }
+            if(this.enemies.countActive() === 0) {
+                alert("Nivel Superado 🏭");
+                gameData.level++;
+                this.scene.restart();
+            }
+        }
+
+        updateHUD() {
+            document.getElementById('money').textContent = gameData.money;
+            document.getElementById('level').textContent = gameData.level;
+            document.getElementById('strikes').textContent = gameData.strikes;
+        }
     }
 
-    window.onload = () => {
-      const config = {
+    const config = {
         type: Phaser.AUTO,
         width: window.innerWidth,
         height: window.innerHeight,
         parent: 'game-container',
-        scene: CorroPac,
-        physics: { default: 'arcade', arcade: { debug: false } }
-      };
-
-      new Phaser.Game(config);
-
-      document.getElementById('reset-btn').onclick = () => location.reload();
-      document.getElementById('close-modal').onclick = () => document.getElementById('inspection-modal').style.display = 'none';
-
-      alert("🎮 ¡Bienvenido a CorroPac!\n\nUsa las flechas para moverte.\nEvita las paredes y las fallas rojas te persiguen.\n¡Buena suerte inspector!");
+        physics: { default: 'arcade', arcade: { debug: false } },
+        scene: CorroPac
     };
-  </script>
+
+    new Phaser.Game(config);
+</script>
 </body>
 </html>
