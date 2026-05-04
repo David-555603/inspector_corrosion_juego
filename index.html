@@ -3,42 +3,36 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>CorroPac: Arcade Edition</title>
+  <title>CorroPac: Maze Masters</title>
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
   <style>
-    body { margin:0; background:#000; overflow:hidden; touch-action: none; font-family: 'Courier New', Courier, monospace; }
+    body { margin:0; background:#000; overflow:hidden; touch-action: none; font-family: 'Courier New', monospace; }
     #ui {
       position: absolute; top: 0; width: 100%; z-index: 100;
-      background: rgba(0, 0, 0, 0.8); border-bottom: 2px solid #2222ff;
+      background: rgba(0, 0, 0, 0.85); border-bottom: 3px solid #0055ff;
       padding: 10px 0; color: #fff; text-align: center;
     }
-    #hud { display: flex; justify-content: center; gap: 20px; font-weight: bold; font-size: 14px; }
-    .life { color: #ff0000; }
-    
-    /* MODAL ESTILO RETRO */
+    #hud { display: flex; justify-content: center; gap: 25px; font-weight: bold; font-size: 16px; }
     .modal {
       display:none; position:fixed; top:0; left:0; right:0; bottom:0;
       background:rgba(0,0,0,0.9); z-index:2000; align-items:center; justify-content:center;
     }
     .modal-content {
-      background:#000; padding:20px; border-radius:5px; width:85%; max-width:400px;
-      border:3px solid #2222ff; text-align:center; box-shadow: 0 0 20px #2222ff;
+      background:#000; padding:20px; border-radius:10px; width:85%; max-width:400px;
+      border:4px solid #0055ff; text-align:center; box-shadow: 0 0 30px #0055ff;
     }
-    #corrosion-image { width:100%; border:2px solid #444; margin: 10px 0; }
+    #corrosion-image { width:100%; border:2px solid #333; margin: 10px 0; }
     .opt-btn {
-      width:100%; padding:12px; margin:5px 0; background:#000; border:1px solid #00ff00; color:#00ff00;
-      font-family: inherit; font-size: 14px; cursor: pointer;
+      width:100%; padding:14px; margin:6px 0; background:#001133; border:2px solid #00ff00; color:#00ff00;
+      font-family: inherit; font-weight: bold; cursor: pointer;
     }
-    .opt-btn:active { background: #00ff00; color: #000; }
-
-    /* CONTROLES */
-    #mobile-controls { position: fixed; bottom: 15px; width: 100%; display: flex; justify-content: center; z-index: 150; }
-    .d-pad { display: grid; grid-template-columns: 60px 60px 60px; gap: 8px; }
+    #mobile-controls { position: fixed; bottom: 20px; width: 100%; display: flex; justify-content: center; z-index: 150; }
+    .d-pad { display: grid; grid-template-columns: 75px 75px 75px; gap: 10px; }
     .joy-btn {
-      width: 60px; height: 60px; background: rgba(34, 34, 255, 0.2);
-      border: 2px solid #2222ff; border-radius: 10px;
+      width: 70px; height: 70px; background: rgba(0, 85, 255, 0.2);
+      border: 3px solid #0055ff; border-radius: 15px;
       display: flex; align-items: center; justify-content: center;
-      font-size: 20px; color: #fff; user-select: none;
+      font-size: 28px; color: #fff; user-select: none;
     }
   </style>
 </head>
@@ -46,17 +40,17 @@
 
 <div id="ui">
   <div id="hud">
-    <span>CASH: $<span id="money">1500</span></span>
-    <span>LIFE: <span id="lives">❤️❤️❤️</span></span>
-    <span>LVL: <span id="level">1</span></span>
+    <span>💰 $<span id="money">1500</span></span>
+    <span>❤️ <span id="lives">❤️❤️❤️</span></span>
+    <span>🏭 LVL: <span id="level">1</span></span>
   </div>
 </div>
 
 <div id="inspection-modal" class="modal">
   <div class="modal-content">
-    <h2 style="margin:0; color: #2222ff; font-size: 18px;">-- ANALYSIS REQUIRED --</h2>
+    <h2 style="margin:0; color: #0055ff;">-- INSPECTION ALERT --</h2>
     <img id="corrosion-image" src="">
-    <p id="modal-description" style="font-size: 12px; color: #888;"></p>
+    <p id="modal-description" style="color: #aaa; font-size: 13px;"></p>
     <div id="options-container"></div>
   </div>
 </div>
@@ -73,9 +67,9 @@
         money: 1500, lives: 3, level: 1, isPaused: false,
         input: { up: false, down: false, left: false, right: false },
         levels: [
-            { defects: 3, speed: 170, enemySpeed: 90 },
-            { defects: 5, speed: 190, enemySpeed: 110 },
-            { defects: 8, speed: 210, enemySpeed: 130 }
+            { defects: 4, speed: 180, enemySpeed: 85 },
+            { defects: 6, speed: 200, enemySpeed: 110 },
+            { defects: 9, speed: 220, enemySpeed: 140 }
         ]
     };
 
@@ -84,26 +78,30 @@
 
         create() {
             const config = gameData.levels[gameData.level - 1];
-            
-            // Laberinto Neón Azul (Tipo Pac-Man)
-            this.walls = this.physics.add.staticGroup();
-            this.drawMaze();
+            const w = window.innerWidth;
+            const h = window.innerHeight;
 
-            // Inspector
-            this.player = this.add.container(40, 90);
-            const pBody = this.add.circle(0, 0, 14, 0xffff00).setStrokeStyle(2, 0x2222ff);
-            const pHead = this.add.text(-10, -18, '👷', {fontSize:'22px'});
-            this.player.add([pBody, pHead]);
+            // Laberinto Estilo Tubería Azul
+            this.walls = this.physics.add.staticGroup();
+            this.createComplexMaze(w, h);
+
+            // Inspector (Aparece en una zona segura)
+            this.player = this.add.container(60, 110);
+            this.player.add([this.add.circle(0, 0, 15, 0xffff00).setStrokeStyle(2, 0x0055ff), this.add.text(-12, -20, '👷', {fontSize:'26px'})]);
             this.physics.add.existing(this.player);
-            this.player.body.setCircle(14, -14, -14).setCollideWorldBounds(true);
+            this.player.body.setCircle(15, -15, -15).setCollideWorldBounds(true);
             this.physics.add.collider(this.player, this.walls);
 
-            // Pepas (Enemigos)
+            // Pepas (Enemigos que vienen de distintas direcciones)
             this.enemies = this.physics.add.group();
+            const spawnPoints = [
+                {x: w-60, y: 120}, {x: w-60, y: h-250}, 
+                {x: 60, y: h-250}, {x: w/2, y: h/2}
+            ];
+
             for(let i=0; i < config.defects; i++) {
-                let x = Phaser.Math.Between(100, window.innerWidth-50);
-                let y = Phaser.Math.Between(150, window.innerHeight-200);
-                let e = this.add.container(x, y);
+                let point = spawnPoints[i % spawnPoints.length];
+                let e = this.add.container(point.x, point.y);
                 e.add(this.add.text(-12, -12, '⚠️', {fontSize:'24px'}));
                 this.physics.add.existing(e);
                 e.body.setCircle(12, -12, -12).setCollideWorldBounds(true).setBounce(1);
@@ -114,7 +112,7 @@
             this.physics.add.collider(this.enemies, this.walls);
             this.physics.add.overlap(this.player, this.enemies, this.hitEnemy, null, this);
 
-            // Controles Táctiles
+            // Setup Controles Móviles
             const setup = (id, key) => {
                 const btn = document.getElementById(id);
                 btn.ontouchstart = (e) => { e.preventDefault(); gameData.input[key] = true; };
@@ -123,43 +121,46 @@
             ['up','down','left','right'].forEach(k => setup(k, k));
         }
 
-        drawMaze() {
-            const w = window.innerWidth;
-            const h = window.innerHeight;
-            const wallColor = 0x2222ff; // Azul Neón
-
-            const addWall = (x, y, width, height) => {
-                const r = this.add.rectangle(x, y, width, height, wallColor);
-                r.setStrokeStyle(2, 0xffffff, 0.5);
+        createComplexMaze(w, h) {
+            const wallColor = 0x0055ff;
+            const drawWall = (x, y, width, height) => {
+                let r = this.add.rectangle(x, y, width, height, wallColor);
+                r.setStrokeStyle(2, 0x00ffff, 0.6);
                 this.walls.add(r);
             };
 
-            // BORDES
-            addWall(w/2, 60, w, 10); // Techo
-            addWall(w/2, h-160, w, 10); // Piso (dejando espacio para controles)
-            addWall(5, h/2, 10, h); // Pared Izq
-            addWall(w-5, h/2, 10, h); // Pared Der
+            // Estructura de "Tuberías" (Laberinto)
+            drawWall(w/2, 70, w, 15); // Techo
+            drawWall(w/2, h-200, w, 15); // Piso
 
-            // BLOQUES INTERNOS (Estilo Laberinto)
-            addWall(w/2, 180, w*0.7, 10); // Viga central sup
-            addWall(w/4, 300, 10, 150); // Vertical izq
-            addWall(w*0.75, 300, 10, 150); // Vertical der
-            addWall(w/2, 420, w*0.4, 10); // Viga central mid
-            addWall(w/2, h/2 + 50, 10, 120); // Pilar central
+            // Columnas y pasillos tipo Pac-Man
+            drawWall(w/2, 180, 15, 120); 
+            drawWall(w/4, 180, w/3, 15);
+            drawWall(w*0.75, 180, w/3, 15);
+
+            drawWall(w/2, h/2 - 20, w*0.6, 15); // Tubería central horizontal
+            drawWall(w/4, h/2 + 50, 15, 150); // Obstáculo vertical izq
+            drawWall(w*0.75, h/2 + 50, 15, 150); // Obstáculo vertical der
+            
+            drawWall(w/2, h-280, w*0.4, 15); // Tubería inferior horizontal
         }
 
         getRandomDefect() {
             const types = [
-                {type:"uniforme", img:"https://picsum.photos/id/1015/300/200", desc:"Ataque general en superficie de acero."},
-                {type:"pitting", img:"https://picsum.photos/id/201/300/200", desc:"Picaduras por cloruros localizadas."},
-                {type:"galvánica", img:"https://picsum.photos/id/866/300/200", desc:"Diferencia de potencial entre metales."},
-                {type:"erosión", img:"https://picsum.photos/id/1016/300/200", desc:"Desgaste por flujo turbulento."}
+                {type:"uniforme", img:"https://picsum.photos/id/1015/300/200", desc:"Deterioro generalizado en la pared del tubo."},
+                {type:"pitting", img:"https://picsum.photos/id/201/300/200", desc:"Perforaciones localizadas de alta peligrosidad."},
+                {type:"galvánica", img:"https://picsum.photos/id/866/300/200", desc:"Corrosión por contacto entre metales disímiles."},
+                {type:"erosión", img:"https://picsum.photos/id/1016/300/200", desc:"Falla por turbulencia y alta velocidad del fluido."}
             ];
             return types[Math.floor(Math.random()*types.length)];
         }
 
         update() {
-            if (gameData.isPaused) { this.player.body.setVelocity(0); this.enemies.children.iterate(e=>{if(e.body) e.body.setVelocity(0)}); return; }
+            if (gameData.isPaused) { 
+                this.player.body.setVelocity(0); 
+                this.enemies.children.iterate(e=>{if(e.body) e.body.setVelocity(0)}); 
+                return; 
+            }
             
             const speed = gameData.levels[gameData.level-1].speed;
             this.player.body.setVelocity(0);
@@ -168,7 +169,9 @@
             if (gameData.input.up) this.player.body.setVelocityY(-speed);
             else if (gameData.input.down) this.player.body.setVelocityY(speed);
 
-            this.enemies.children.iterate(e => { if(e.active) this.physics.moveToObject(e, this.player, gameData.levels[gameData.level-1].enemySpeed); });
+            this.enemies.children.iterate(e => { 
+                if(e.active) this.physics.moveToObject(e, this.player, gameData.levels[gameData.level-1].enemySpeed); 
+            });
         }
 
         hitEnemy(p, e) {
@@ -184,23 +187,27 @@
                 b.className = 'opt-btn';
                 b.textContent = opt;
                 b.onclick = () => {
-                    if(opt.toLowerCase() === def.type.toLowerCase()) { e.destroy(); gameData.money += 400; }
-                    else { gameData.lives--; gameData.money -= 200; }
+                    if(opt.toLowerCase() === def.type.toLowerCase()) { e.destroy(); gameData.money += 300; }
+                    else { gameData.lives--; gameData.money -= 150; }
                     document.getElementById('inspection-modal').style.display = 'none';
-                    this.refreshHUD();
+                    this.updateUI();
                 };
                 container.appendChild(b);
             });
             document.getElementById('inspection-modal').style.display = 'flex';
         }
 
-        refreshHUD() {
+        updateUI() {
             document.getElementById('money').textContent = gameData.money;
             document.getElementById('lives').textContent = "❤️".repeat(gameData.lives);
-            if(gameData.lives <= 0) { alert("SYSTEM OVERLOAD: GAME OVER"); location.reload(); }
+            if(gameData.lives <= 0) { alert("☣️ PLANTA EN CUARENTENA: GAME OVER"); location.reload(); }
             else { 
                 gameData.isPaused = false; 
-                if(this.enemies.countActive() === 0) { gameData.level++; alert("SECTOR SECURED"); this.scene.restart(); }
+                if(this.enemies.countActive() === 0) { 
+                    gameData.level++; 
+                    alert("🚧 NIVEL COMPLETADO: Nueva zona de tuberías detectada."); 
+                    this.scene.restart(); 
+                }
             }
         }
     }
