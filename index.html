@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>CorroPac: Arcade Challenge</title>
+  <title>CorroPac: Industrial Trilogy</title>
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
   <style>
     body { margin:0; background:#000; overflow:hidden; touch-action: none; font-family: 'Courier New', monospace; }
@@ -19,7 +19,7 @@
     }
     .modal-content {
       background:#000; padding:15px; border-radius:10px; width:80%; max-width:350px;
-      border:3px solid #00ff00; text-align:center;
+      border:3px solid #00ff00; text-align:center; box-shadow: 0 0 20px #0055ff;
     }
     #corrosion-image { width:100%; border-radius:5px; margin: 10px 0; border: 1px solid #444; }
     .opt-btn {
@@ -48,7 +48,7 @@
 
 <div id="inspection-modal" class="modal">
   <div class="modal-content">
-    <h3 style="margin:0; color: #00ff00;">ALERTA DE CORROSIÓN</h3>
+    <h3 style="margin:0; color: #00ff00;">ANALIZANDO FALLA</h3>
     <img id="corrosion-image" src="">
     <p id="modal-description" style="color: #ccc; font-size: 12px;"></p>
     <div id="options-container"></div>
@@ -67,8 +67,9 @@
         lives: 3, level: 1, isPaused: false, toolsCollected: 0,
         input: { up: false, down: false, left: false, right: false },
         levels: [
-            { speed: 170, enemySpeed: 60, enemyCount: 3 },
-            { speed: 190, enemySpeed: 80, enemyCount: 5 }
+            { speed: 170, enemySpeed: 60, enemyCount: 3 }, // Nivel 1
+            { speed: 190, enemySpeed: 80, enemyCount: 5 }, // Nivel 2
+            { speed: 210, enemySpeed: 110, enemyCount: 8 } // Nivel 3 (EL DESAFÍO)
         ]
     };
 
@@ -80,26 +81,23 @@
             const h = this.cameras.main.height;
             gameData.toolsCollected = 0;
             const config = gameData.levels[gameData.level - 1];
+            
             document.getElementById('level').textContent = gameData.level;
             document.getElementById('tools-count').textContent = "0";
 
             this.walls = this.physics.add.staticGroup();
-            this.createMaze(w, h);
+            this.createLevelMaze(w, h);
 
-            // Inspector
+            // Inspector (Spawn central inferior para seguridad)
             this.player = this.add.container(w/2, h-220);
             this.player.add([this.add.circle(0, 0, 12, 0xffff00), this.add.text(-10, -15, '👷', {fontSize:'18px'})]);
             this.physics.add.existing(this.player);
             this.player.body.setCircle(12, -12, -12).setCollideWorldBounds(true);
             this.physics.add.collider(this.player, this.walls);
 
-            // Herramientas (10 llaves esparcidas)
+            // Herramientas (10 llaves esparcidas por toda la pista)
             this.tools = this.physics.add.group();
-            const spots = [
-                {x: 50, y: 110}, {x: w-50, y: 110}, {x: w/2, y: 110},
-                {x: 50, y: h/2}, {x: w-50, y: h/2}, {x: 50, y: h-230},
-                {x: w-50, y: h-230}, {x: w/2, y: h/2 - 50}, {x: w/4, y: 220}, {x: 3*w/4, y: 220}
-            ];
+            const spots = this.getToolSpots(w, h);
             spots.forEach(pos => {
                 let t = this.add.text(pos.x, pos.y, '🔧', {fontSize:'22px'});
                 this.physics.add.existing(t);
@@ -113,11 +111,11 @@
                 this.checkWinCondition();
             }, null, this);
 
-            // ENEMIGOS: Salen todos al mismo tiempo
+            // Enemigos (Aparecen al tiempo en las esquinas)
             this.enemies = this.physics.add.group();
-            const spawnPoints = [{x: 50, y: 110}, {x: w-50, y: 110}, {x: w/2, y: 110}, {x: 50, y: h-230}, {x: w-50, y: h-230}];
+            const spawns = [{x: 50, y: 110}, {x: w-50, y: 110}, {x: 50, y: h-230}, {x: w-50, y: h-230}, {x: w/2, y: 110}];
             for(let i=0; i < config.enemyCount; i++) {
-                let p = spawnPoints[i % spawnPoints.length];
+                let p = spawns[i % spawns.length];
                 let e = this.add.container(p.x, p.y);
                 e.add(this.add.text(-12, -12, '⚠️', {fontSize:'24px'}));
                 this.physics.add.existing(e);
@@ -138,30 +136,51 @@
             ['up','down','left','right'].forEach(k => setup(k, k));
         }
 
-        createMaze(w, h) {
+        createLevelMaze(w, h) {
             const wallColor = 0x0055ff;
             const drawRect = (x, y, width, height) => {
                 this.walls.add(this.add.rectangle(x, y, width, height, wallColor).setStrokeStyle(2, 0x00ffff, 0.5));
             };
 
-            // Bordes
-            drawRect(w/2, 70, w, 10); // Techo
-            drawRect(w/2, h-180, w, 10); // Piso
+            // Bordes Universales
+            drawRect(w/2, 70, w, 10);
+            drawRect(w/2, h-180, w, 10);
 
             if(gameData.level === 1) {
-                // Laberinto Nivel 1 (Pasillos horizontales)
+                // Nivel 1: Pasillos Horizontales
                 drawRect(w/2, 180, w*0.7, 15);
                 drawRect(w/4, h/2 - 20, 15, 120);
                 drawRect(w*0.75, h/2 - 20, 15, 120);
-                drawRect(w/2, h-280, w*0.4, 15);
-            } else {
-                // Laberinto Nivel 2 (Paredes verticales - ¡Cambia!)
+            } else if (gameData.level === 2) {
+                // Nivel 2: Pasillos Verticales
                 drawRect(w/2, h/2 - 50, 20, h*0.5);
                 drawRect(w/4, 150, w/3, 15);
                 drawRect(w*0.75, 150, w/3, 15);
-                drawRect(w/4, h-280, w/3, 15);
-                drawRect(w*0.75, h-280, w/3, 15);
+                drawRect(w/2, h-280, w*0.5, 15);
+            } else {
+                // NIVEL 3: EL LABERINTO COMPLEJO (Tubería densa)
+                drawRect(w/2, 160, 20, 120); // Cruz central sup
+                drawRect(w/2, 160, w*0.8, 15);
+                
+                drawRect(w/4, 300, 15, 200); // Laberinto lateral izq
+                drawRect(w*0.75, 300, 15, 200); // Laberinto lateral der
+                
+                drawRect(w/2, h/2 + 50, w*0.6, 15); // Divisor central
+                drawRect(w/2, h-320, 15, 100); // Obstáculo final
+                
+                // Bloques de esquina
+                drawRect(80, 240, 60, 15);
+                drawRect(w-80, 240, 60, 15);
             }
+        }
+
+        getToolSpots(w, h) {
+            // Repartidas para forzar el recorrido total
+            return [
+                {x: 40, y: 100}, {x: w-40, y: 100}, {x: w/2, y: 220},
+                {x: 40, y: h/2}, {x: w-40, y: h/2}, {x: 40, y: h-230},
+                {x: w-40, y: h-230}, {x: w/2, y: h/2 + 100}, {x: w/4, y: 150}, {x: 3*w/4, y: 150}
+            ];
         }
 
         getRandomDefect() {
@@ -211,17 +230,16 @@
 
         checkWinCondition() {
             document.getElementById('lives').textContent = "❤️".repeat(gameData.lives);
-            if(gameData.lives <= 0) { alert("PLANTA FUERA DE SERVICIO: FIN DEL JUEGO"); location.reload(); return; }
+            if(gameData.lives <= 0) { alert("SISTEMA COLAPSADO: FIN DEL JUEGO"); location.reload(); return; }
             
             gameData.isPaused = false;
-            // SI NO QUEDAN ENEMIGOS Y TIENE LAS 10 HERRAMIENTAS -> PASA DE NIVEL
             if(this.enemies.countActive() === 0 && gameData.toolsCollected >= 10) {
-                if(gameData.level < 2) {
+                if(gameData.level < 3) {
                     gameData.level++;
-                    alert("¡Nivel 1 Superado! Iniciando Nivel 2 con 5 amenazas...");
+                    alert("¡NIVEL SUPERADO! Prepárate para el siguiente sector.");
                     this.scene.restart();
                 } else {
-                    alert("¡Misión Cumplida! Has asegurado toda la planta industrial.");
+                    alert("¡FELICITACIONES! Has completado la inspección total de la planta.");
                     location.reload();
                 }
             }
