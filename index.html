@@ -3,41 +3,42 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>CorroPac MOBILE</title>
+  <title>CorroPac: Arcade Edition</title>
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
   <style>
-    body { margin:0; background:#000; color:#00ff9d; font-family: sans-serif; overflow:hidden; touch-action: none; }
+    body { margin:0; background:#000; overflow:hidden; touch-action: none; font-family: 'Courier New', Courier, monospace; }
     #ui {
       position: absolute; top: 0; width: 100%; z-index: 100;
-      background: rgba(10,20,40,0.9); padding: 8px 0; text-align: center; border-bottom: 2px solid #00ff9d;
+      background: rgba(0, 0, 0, 0.8); border-bottom: 2px solid #2222ff;
+      padding: 10px 0; color: #fff; text-align: center;
     }
-    #hud { font-size: 1em; display: flex; justify-content: center; gap: 15px; font-weight: bold; }
+    #hud { display: flex; justify-content: center; gap: 20px; font-weight: bold; font-size: 14px; }
+    .life { color: #ff0000; }
     
-    /* MODAL MÓVIL */
+    /* MODAL ESTILO RETRO */
     .modal {
       display:none; position:fixed; top:0; left:0; right:0; bottom:0;
-      background:rgba(0,0,0,0.95); z-index:2000; align-items:center; justify-content:center;
+      background:rgba(0,0,0,0.9); z-index:2000; align-items:center; justify-content:center;
     }
     .modal-content {
-      background:#0d1b2a; padding:15px; border-radius:10px; width:85%; max-width:400px;
-      border:3px solid #00ff9d; text-align:center;
+      background:#000; padding:20px; border-radius:5px; width:85%; max-width:400px;
+      border:3px solid #2222ff; text-align:center; box-shadow: 0 0 20px #2222ff;
     }
-    #corrosion-image { width:100%; border-radius:8px; margin: 10px 0; }
+    #corrosion-image { width:100%; border:2px solid #444; margin: 10px 0; }
     .opt-btn {
-      width:100%; padding:12px; margin:5px 0; background:#1b263b; border:2px solid #00ff9d; color:#00ff9d;
-      font-size: 1em; font-weight: bold; border-radius: 5px;
+      width:100%; padding:12px; margin:5px 0; background:#000; border:1px solid #00ff00; color:#00ff00;
+      font-family: inherit; font-size: 14px; cursor: pointer;
     }
+    .opt-btn:active { background: #00ff00; color: #000; }
 
-    /* CONTROLES TÁCTILES */
-    #mobile-controls {
-      position: fixed; bottom: 20px; left: 0; right: 0;
-      display: flex; justify-content: center; gap: 10px; z-index: 150;
-    }
+    /* CONTROLES */
+    #mobile-controls { position: fixed; bottom: 15px; width: 100%; display: flex; justify-content: center; z-index: 150; }
+    .d-pad { display: grid; grid-template-columns: 60px 60px 60px; gap: 8px; }
     .joy-btn {
-      width: 65px; height: 65px; background: rgba(0, 255, 157, 0.2);
-      border: 2px solid #00ff9d; border-radius: 50%;
+      width: 60px; height: 60px; background: rgba(34, 34, 255, 0.2);
+      border: 2px solid #2222ff; border-radius: 10px;
       display: flex; align-items: center; justify-content: center;
-      font-size: 24px; color: #00ff9d; user-select: none;
+      font-size: 20px; color: #fff; user-select: none;
     }
   </style>
 </head>
@@ -45,23 +46,23 @@
 
 <div id="ui">
   <div id="hud">
-    <span>💰 $<span id="money">1500</span></span>
-    <span>❤️ <span id="lives">❤️❤️❤️</span></span>
-    <span>🏭 Lv: <span id="level">1</span></span>
+    <span>CASH: $<span id="money">1500</span></span>
+    <span>LIFE: <span id="lives">❤️❤️❤️</span></span>
+    <span>LVL: <span id="level">1</span></span>
   </div>
 </div>
 
 <div id="inspection-modal" class="modal">
   <div class="modal-content">
-    <h3 style="margin:0; color: #00ff9d;">INSPECCIÓN DE CAMPO</h3>
+    <h2 style="margin:0; color: #2222ff; font-size: 18px;">-- ANALYSIS REQUIRED --</h2>
     <img id="corrosion-image" src="">
-    <p id="modal-description" style="font-size: 0.8em; color: #ccc;"></p>
+    <p id="modal-description" style="font-size: 12px; color: #888;"></p>
     <div id="options-container"></div>
   </div>
 </div>
 
 <div id="mobile-controls">
-  <div style="display: grid; grid-template-columns: 70px 70px 70px; gap: 5px;">
+  <div class="d-pad">
     <div></div><div class="joy-btn" id="up">▲</div><div></div>
     <div class="joy-btn" id="left">◀</div><div class="joy-btn" id="down">▼</div><div class="joy-btn" id="right">▶</div>
   </div>
@@ -72,9 +73,9 @@
         money: 1500, lives: 3, level: 1, isPaused: false,
         input: { up: false, down: false, left: false, right: false },
         levels: [
-            { defects: 3, speed: 160, enemySpeed: 80 },
-            { defects: 5, speed: 180, enemySpeed: 100 },
-            { defects: 7, speed: 200, enemySpeed: 120 }
+            { defects: 3, speed: 170, enemySpeed: 90 },
+            { defects: 5, speed: 190, enemySpeed: 110 },
+            { defects: 8, speed: 210, enemySpeed: 130 }
         ]
     };
 
@@ -83,34 +84,37 @@
 
         create() {
             const config = gameData.levels[gameData.level - 1];
-            this.physics.world.setBounds(0, 60, window.innerWidth, window.innerHeight - 150);
-
-            // Laberinto
+            
+            // Laberinto Neón Azul (Tipo Pac-Man)
             this.walls = this.physics.add.staticGroup();
-            this.createMaze();
+            this.drawMaze();
 
             // Inspector
-            this.player = this.add.container(50, 100);
-            this.player.add([this.add.circle(0, 0, 15, 0x00ff9d).setStrokeStyle(2, 0xffffff), this.add.text(-10, -18, '👷', {fontSize:'22px'})]);
+            this.player = this.add.container(40, 90);
+            const pBody = this.add.circle(0, 0, 14, 0xffff00).setStrokeStyle(2, 0x2222ff);
+            const pHead = this.add.text(-10, -18, '👷', {fontSize:'22px'});
+            this.player.add([pBody, pHead]);
             this.physics.add.existing(this.player);
-            this.player.body.setCircle(15, -15, -15).setCollideWorldBounds(true);
+            this.player.body.setCircle(14, -14, -14).setCollideWorldBounds(true);
             this.physics.add.collider(this.player, this.walls);
 
-            // Daños (Pepas)
+            // Pepas (Enemigos)
             this.enemies = this.physics.add.group();
             for(let i=0; i < config.defects; i++) {
-                let enemy = this.add.container(Phaser.Math.Between(200, window.innerWidth-50), Phaser.Math.Between(150, window.innerHeight-200));
-                enemy.add(this.add.text(-12, -12, '⚠️', {fontSize:'24px'}));
-                this.physics.add.existing(enemy);
-                enemy.body.setCircle(12, -12, -12).setCollideWorldBounds(true).setBounce(1);
-                enemy.defData = this.getRandomDefect();
-                this.enemies.add(enemy);
+                let x = Phaser.Math.Between(100, window.innerWidth-50);
+                let y = Phaser.Math.Between(150, window.innerHeight-200);
+                let e = this.add.container(x, y);
+                e.add(this.add.text(-12, -12, '⚠️', {fontSize:'24px'}));
+                this.physics.add.existing(e);
+                e.body.setCircle(12, -12, -12).setCollideWorldBounds(true).setBounce(1);
+                e.defData = this.getRandomDefect();
+                this.enemies.add(e);
             }
 
             this.physics.add.collider(this.enemies, this.walls);
             this.physics.add.overlap(this.player, this.enemies, this.hitEnemy, null, this);
 
-            // Setup Controles Móviles
+            // Controles Táctiles
             const setup = (id, key) => {
                 const btn = document.getElementById(id);
                 btn.ontouchstart = (e) => { e.preventDefault(); gameData.input[key] = true; };
@@ -119,25 +123,43 @@
             ['up','down','left','right'].forEach(k => setup(k, k));
         }
 
-        createMaze() {
+        drawMaze() {
             const w = window.innerWidth;
             const h = window.innerHeight;
-            const layout = [[w/2, h/2, 20, h/3], [w/4, h/2, w/3, 20], [w*0.75, h/4, 20, h/4]];
-            layout.forEach(p => this.walls.add(this.add.rectangle(p[0], p[1], p[2], p[3], 0x1b263b)));
+            const wallColor = 0x2222ff; // Azul Neón
+
+            const addWall = (x, y, width, height) => {
+                const r = this.add.rectangle(x, y, width, height, wallColor);
+                r.setStrokeStyle(2, 0xffffff, 0.5);
+                this.walls.add(r);
+            };
+
+            // BORDES
+            addWall(w/2, 60, w, 10); // Techo
+            addWall(w/2, h-160, w, 10); // Piso (dejando espacio para controles)
+            addWall(5, h/2, 10, h); // Pared Izq
+            addWall(w-5, h/2, 10, h); // Pared Der
+
+            // BLOQUES INTERNOS (Estilo Laberinto)
+            addWall(w/2, 180, w*0.7, 10); // Viga central sup
+            addWall(w/4, 300, 10, 150); // Vertical izq
+            addWall(w*0.75, 300, 10, 150); // Vertical der
+            addWall(w/2, 420, w*0.4, 10); // Viga central mid
+            addWall(w/2, h/2 + 50, 10, 120); // Pilar central
         }
 
         getRandomDefect() {
             const types = [
-                {type:"uniforme", img:"https://picsum.photos/id/1015/300/200", desc:"Corrosión generalizada."},
-                {type:"pitting", img:"https://picsum.photos/id/201/300/200", desc:"Picaduras profundas."},
-                {type:"galvánica", img:"https://picsum.photos/id/866/300/200", desc:"Par galvánico."},
-                {type:"erosión", img:"https://picsum.photos/id/1016/300/200", desc:"Erosión-corrosión."}
+                {type:"uniforme", img:"https://picsum.photos/id/1015/300/200", desc:"Ataque general en superficie de acero."},
+                {type:"pitting", img:"https://picsum.photos/id/201/300/200", desc:"Picaduras por cloruros localizadas."},
+                {type:"galvánica", img:"https://picsum.photos/id/866/300/200", desc:"Diferencia de potencial entre metales."},
+                {type:"erosión", img:"https://picsum.photos/id/1016/300/200", desc:"Desgaste por flujo turbulento."}
             ];
             return types[Math.floor(Math.random()*types.length)];
         }
 
         update() {
-            if (gameData.isPaused) { this.player.body.setVelocity(0); this.enemies.children.iterate(e => {if(e.body) e.body.setVelocity(0)}); return; }
+            if (gameData.isPaused) { this.player.body.setVelocity(0); this.enemies.children.iterate(e=>{if(e.body) e.body.setVelocity(0)}); return; }
             
             const speed = gameData.levels[gameData.level-1].speed;
             this.player.body.setVelocity(0);
@@ -149,10 +171,10 @@
             this.enemies.children.iterate(e => { if(e.active) this.physics.moveToObject(e, this.player, gameData.levels[gameData.level-1].enemySpeed); });
         }
 
-        hitEnemy(player, enemy) {
+        hitEnemy(p, e) {
             if (gameData.isPaused) return;
             gameData.isPaused = true;
-            const def = enemy.defData;
+            const def = e.defData;
             document.getElementById('corrosion-image').src = def.img;
             document.getElementById('modal-description').textContent = def.desc;
             const container = document.getElementById('options-container');
@@ -162,39 +184,31 @@
                 b.className = 'opt-btn';
                 b.textContent = opt;
                 b.onclick = () => {
-                    if(opt.toLowerCase() === def.type.toLowerCase()) {
-                        enemy.destroy();
-                        gameData.money += 500;
-                    } else {
-                        gameData.lives--;
-                        gameData.money -= 200;
-                    }
+                    if(opt.toLowerCase() === def.type.toLowerCase()) { e.destroy(); gameData.money += 400; }
+                    else { gameData.lives--; gameData.money -= 200; }
                     document.getElementById('inspection-modal').style.display = 'none';
-                    this.checkGameState();
+                    this.refreshHUD();
                 };
                 container.appendChild(b);
             });
             document.getElementById('inspection-modal').style.display = 'flex';
         }
 
-        checkGameState() {
+        refreshHUD() {
             document.getElementById('money').textContent = gameData.money;
             document.getElementById('lives').textContent = "❤️".repeat(gameData.lives);
-            if(gameData.lives <= 0) { alert("GAME OVER"); location.reload(); }
+            if(gameData.lives <= 0) { alert("SYSTEM OVERLOAD: GAME OVER"); location.reload(); }
             else { 
                 gameData.isPaused = false; 
-                if(this.enemies.countActive() === 0) { 
-                    gameData.level++; 
-                    alert("¡Nivel Superado!"); 
-                    this.scene.restart(); 
-                }
+                if(this.enemies.countActive() === 0) { gameData.level++; alert("SECTOR SECURED"); this.scene.restart(); }
             }
         }
     }
 
     new Phaser.Game({
         type: Phaser.AUTO, width: window.innerWidth, height: window.innerHeight,
-        parent: 'game-container', physics: { default: 'arcade' }, scene: CorroPac
+        parent: 'game-container', backgroundColor: '#000',
+        physics: { default: 'arcade' }, scene: CorroPac
     });
 </script>
 </body>
