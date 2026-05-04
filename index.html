@@ -13,28 +13,44 @@
       padding: 5px 0; color: #fff; text-align: center;
     }
     #hud { display: flex; justify-content: center; gap: 15px; font-weight: bold; font-size: 14px; }
+    
+    /* Modales */
     .modal {
       display:flex; position:fixed; top:0; left:0; right:0; bottom:0;
       background:rgba(0,0,0,0.95); z-index:2000; align-items:center; justify-content:center;
     }
     .modal-content {
-      background:#000; padding:15px; border-radius:10px; width:80%; max-width:350px;
+      background:#000; padding:20px; border-radius:10px; width:85%; max-width:400px;
       border:3px solid #00ff00; text-align:center; box-shadow: 0 0 20px #0055ff;
     }
-    #corrosion-image { width:100%; border-radius:5px; margin: 10px 0; border: 1px solid #444; }
+
+    /* Input Nombre */
+    input#inspector-name {
+      background: #111; border: 2px solid #0055ff; color: #00ff00;
+      padding: 10px; width: 80%; margin: 15px 0; font-family: 'Courier New', monospace;
+      text-align: center; font-size: 18px;
+    }
+
+    /* Botones y Controles */
     .opt-btn {
-      width:100%; padding:12px; margin:5px 0; background:#001133; border:2px solid #00ff00; color:#00ff00;
-      font-weight: bold; border-radius: 5px; font-size: 14px; cursor: pointer;
+      width:100%; padding:15px; margin:5px 0; background:#001133; border:2px solid #00ff00; color:#00ff00;
+      font-weight: bold; border-radius: 5px; font-size: 16px; cursor: pointer;
     }
-    #mobile-controls { position: fixed; bottom: 10px; width: 100%; display: flex; justify-content: center; z-index: 150; }
-    .d-pad { display: grid; grid-template-columns: 65px 65px 65px; gap: 5px; }
+    #mobile-controls { position: fixed; bottom: 20px; width: 100%; display: flex; justify-content: center; z-index: 150; }
+    .d-pad { display: grid; grid-template-columns: 85px 85px 85px; gap: 8px; }
     .joy-btn {
-      width: 60px; height: 60px; background: rgba(0, 85, 255, 0.3);
-      border: 2px solid #0055ff; border-radius: 50%;
+      width: 80px; height: 80px; background: rgba(0, 85, 255, 0.4);
+      border: 3px solid #0055ff; border-radius: 15px;
       display: flex; align-items: center; justify-content: center;
-      font-size: 20px; color: #fff; touch-action: none;
+      font-size: 32px; color: #fff; touch-action: none;
     }
-    .inst-text { color: #ccc; text-align: left; font-size: 13px; line-height: 1.4; }
+
+    /* Certificado Final */
+    #certificate {
+      background: linear-gradient(45deg, #000428, #004e92);
+      border: 10px double #ffd700; color: #fff; padding: 30px;
+    }
+    #corrosion-image { width:100%; border-radius:5px; margin: 10px 0; border: 1px solid #444; }
   </style>
 </head>
 <body>
@@ -48,14 +64,19 @@
 </div>
 
 <div id="intro-modal" class="modal">
-  <div class="modal-content">
-    <h2 style="color: #00ff00; margin-top: 0;">MANUAL DE MISIÓN</h2>
-    <div class="inst-text">
-      <p>• <b>OBJETIVO:</b> Recolecta las 10 herramientas 🔧 o elimina todas las alertas ⚠️ para asegurar el sector.</p>
-      <p>• <b>ALERTAS:</b> Las fallas te perseguirán. Si te tocan, deberás identificar el tipo de corrosión.</p>
-      <p>• <b>PELIGRO:</b> Si respondes mal en el análisis, <b>perderás una vida</b> ❤️.</p>
-      <p>• <b>CONTROLES:</b> Usa el D-Pad inferior para moverte por las tuberías.</p>
-    </div>
+  <div class="modal-content" id="start-content">
+    <h2 style="color: #00ff00; margin-top: 0;">CORROPAC</h2>
+    <p style="color: #fff;">INGRESE NOMBRE DEL INSPECTOR:</p>
+    <input type="text" id="inspector-name" placeholder="NOMBRE..." maxlength="12">
+    <button class="opt-btn" onclick="checkName()">VER MANUAL</button>
+  </div>
+  <div class="modal-content" id="manual-content" style="display: none;">
+    <h3 style="color: #00ff00;">MANUAL DE MISIÓN</h3>
+    <p style="color: #ccc; font-size: 13px; text-align: left;">
+      • Recolecta <b>10 llaves</b> 🔧 para reparar la planta.<br>
+      • Identifica la corrosión ⚠️ para eliminar amenazas.<br>
+      • <b>CUIDADO:</b> Respuesta errónea = Vida perdida ❤️.<br>
+    </p>
     <button class="opt-btn" onclick="startGame()">INICIAR INSPECCIÓN</button>
   </div>
 </div>
@@ -69,6 +90,18 @@
   </div>
 </div>
 
+<div id="final-modal" class="modal" style="display: none;">
+  <div class="modal-content" id="certificate">
+    <h1 style="color: #ffd700; margin-bottom: 5px;">CERTIFICADO</h1>
+    <p style="font-size: 14px;">LA ACADEMIA DE INGENIERÍA OTORGA A:</p>
+    <h2 id="cert-name" style="color: #00ff00; text-transform: uppercase;"></h2>
+    <p style="font-size: 18px; font-weight: bold; color: #ffd700;">MAESTRO EN CONTROL DE CORROSIÓN</p>
+    <hr border="1" color="#ffd700">
+    <p style="font-size: 12px;">Planta Industrial Salvada con Éxito</p>
+    <button class="opt-btn" style="border-color: #ffd700; color: #ffd700;" onclick="location.reload()">REINTENTAR</button>
+  </div>
+</div>
+
 <div id="mobile-controls">
   <div class="d-pad">
     <div></div><div class="joy-btn" id="up">▲</div><div></div>
@@ -77,24 +110,36 @@
 </div>
 
 <script>
+    let userName = "Inspector";
     const gameData = {
         lives: 3, level: 1, isPaused: true, toolsCollected: 0,
         input: { up: false, down: false, left: false, right: false },
         levels: [
-            { speed: 160, enemySpeed: 65, enemyCount: 3, map: [
+            { speed: 170, enemySpeed: 65, enemyCount: 3, map: [
                 [1,1,1,1,1,1,1,1,1,1], [1,0,0,0,0,0,0,0,0,1], [1,0,1,1,0,0,1,1,0,1],
                 [0,0,0,0,0,1,0,0,0,0], [1,0,1,1,1,1,1,1,0,1], [1,0,0,0,0,0,0,0,0,1], [1,1,1,1,1,1,1,1,1,1]
             ]},
-            { speed: 180, enemySpeed: 85, enemyCount: 5, map: [
+            { speed: 190, enemySpeed: 90, enemyCount: 5, map: [
                 [1,1,1,1,1,1,1,1,1,1], [1,0,0,1,1,1,1,0,0,1], [1,0,1,1,0,0,1,1,0,1],
                 [0,0,0,0,0,0,0,0,0,0], [1,1,0,1,0,0,1,0,1,1], [1,0,0,0,0,0,0,0,0,1], [1,1,1,1,1,1,1,1,1,1]
             ]},
-            { speed: 200, enemySpeed: 110, enemyCount: 7, map: [
+            { speed: 210, enemySpeed: 120, enemyCount: 7, map: [
                 [1,1,1,1,1,1,1,1,1,1], [1,0,1,0,0,0,0,1,0,1], [1,0,1,0,1,1,0,1,0,1],
                 [0,0,0,0,1,1,0,0,0,0], [1,0,1,0,0,0,0,1,0,1], [1,0,0,0,1,1,0,0,0,1], [1,1,1,1,1,1,1,1,1,1]
             ]}
         ]
     };
+
+    function checkName() {
+        const input = document.getElementById('inspector-name').value;
+        if(input.trim() !== "") {
+            userName = input;
+            document.getElementById('start-content').style.display = 'none';
+            document.getElementById('manual-content').style.display = 'block';
+        } else {
+            alert("¡Por favor ingrese su nombre!");
+        }
+    }
 
     function startGame() {
         document.getElementById('intro-modal').style.display = 'none';
@@ -130,7 +175,7 @@
         setupLevel(w, h, config) {
             const map = config.map;
             const cellW = w / 10;
-            const cellH = (h - 280) / map.length;
+            const cellH = (h - 320) / map.length;
             const offsetY = 110;
             let spawnFound = false;
 
@@ -140,7 +185,7 @@
                     let posY = y * cellH + offsetY;
 
                     if (val === 1) {
-                        this.walls.add(this.add.rectangle(posX, posY, cellW-2, cellH-2, 0x0055ff).setStrokeStyle(1, 0x00ffff));
+                        this.walls.add(this.add.rectangle(posX, posY, cellW-3, cellH-3, 0x0055ff).setStrokeStyle(2, 0x00ffff, 0.4));
                     } else {
                         if (!spawnFound) {
                             this.player = this.add.container(posX, posY);
@@ -149,7 +194,7 @@
                             this.player.body.setCircle(11, -11, -11);
                             spawnFound = true;
                         }
-                        if (this.tools.getLength() < 10 && Math.random() > 0.4) {
+                        if (this.tools.getLength() < 10 && Math.random() > 0.45) {
                             let t = this.add.text(posX-10, posY-12, '🔧', {fontSize:'18px'});
                             this.physics.add.existing(t);
                             this.tools.add(t);
@@ -157,16 +202,15 @@
                     }
                 });
             });
-
             document.getElementById('tools-count').textContent = `0/10`;
 
             for(let i=0; i<config.enemyCount; i++) {
                 let ex = (i%2==0) ? cellW*1.5 : cellW*8.5;
                 let ey = (i<2) ? offsetY + cellH : offsetY + (cellH * (map.length-2));
                 let e = this.add.container(ex, ey);
-                e.add(this.add.text(-12, -12, '⚠️', {fontSize:'22px'}));
+                e.add(this.add.text(-12, -12, '⚠️', {fontSize:'24px'}));
                 this.physics.add.existing(e);
-                e.body.setCircle(10, -10, -10).setBounce(1);
+                e.body.setCircle(12, -12, -12).setBounce(1);
                 e.defData = this.getRandomDefect();
                 this.enemies.add(e);
             }
@@ -214,9 +258,9 @@
                 btn.className = 'opt-btn'; btn.textContent = opt;
                 btn.onclick = () => {
                     if(opt.toLowerCase() === def.type.toLowerCase()) { 
-                        e.destroy(); // Acierto: Elimina alerta
+                        e.destroy();
                     } else { 
-                        gameData.lives--; // Error: Pierde vida
+                        gameData.lives--;
                         document.getElementById('lives').textContent = "❤️".repeat(Math.max(0, gameData.lives));
                     }
                     document.getElementById('inspection-modal').style.display = 'none';
@@ -230,7 +274,7 @@
 
         checkWinCondition() {
             if(gameData.lives <= 0) { 
-                alert("SISTEMA COLAPSADO: PLANTA CERRADA"); 
+                alert(`EL INSPECTOR ${userName} HA FALLADO.`); 
                 location.reload(); 
                 return; 
             }
@@ -238,30 +282,31 @@
             if(gameData.toolsCollected >= 10 || this.enemies.countActive() === 0) {
                 if(gameData.level < 3) {
                     gameData.level++;
-                    alert("¡SECTOR DESPEJADO!");
+                    alert("¡NIVEL SUPERADO!");
                     this.scene.restart();
                 } else {
-                    alert("¡FELICIDADES! ERES UN INSPECTOR MAESTRO.");
-                    location.reload();
+                    gameData.isPaused = true;
+                    document.getElementById('cert-name').textContent = userName;
+                    document.getElementById('final-modal').style.display = 'flex';
                 }
             }
         }
 
         getRandomDefect() {
             return [
-                {type:"uniforme", img:"https://picsum.photos/id/1015/300/200", desc:"Deterioro por corrosión uniforme."},
-                {type:"pitting", img:"https://picsum.photos/id/201/300/200", desc:"Falla por picaduras profundas."},
-                {type:"galvánica", img:"https://picsum.photos/id/866/300/200", desc:"Corrosión por metales diferentes."},
-                {type:"erosión", img:"https://picsum.photos/id/1016/300/200", desc:"Falla por fricción de fluidos."}
+                {type:"uniforme", img:"https://picsum.photos/id/1015/300/200", desc:"Deterioro por corrosión uniforme en tubería."},
+                {type:"pitting", img:"https://picsum.photos/id/201/300/200", desc:"Falla crítica por picaduras profundas."},
+                {type:"galvánica", img:"https://picsum.photos/id/866/300/200", desc:"Corrosión por unión de metales distintos."},
+                {type:"erosión", img:"https://picsum.photos/id/1016/300/200", desc:"Falla por fricción de fluido a alta velocidad."}
             ][Math.floor(Math.random()*4)];
         }
 
         initControls() {
             const setup = (id, k) => {
                 const b = document.getElementById(id);
-                b.onpointerdown = (ev) => { ev.preventDefault(); gameData.input[k] = true; };
-                b.onpointerup = () => gameData.input[k] = false;
-                b.onpointerout = () => gameData.input[k] = false;
+                b.onpointerdown = (ev) => { ev.preventDefault(); gameData.input[k] = true; b.style.background = "rgba(0,255,0,0.5)"; };
+                b.onpointerup = () => { gameData.input[k] = false; b.style.background = "rgba(0,85,255,0.4)"; };
+                b.onpointerout = () => { gameData.input[k] = false; b.style.background = "rgba(0,85,255,0.4)"; };
             };
             ['up','down','left','right'].forEach(k => setup(k, k));
         }
