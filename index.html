@@ -28,7 +28,7 @@
     }
     .opt-btn {
       width:100%; padding:15px; margin:5px 0; background:#001133; border:2px solid #00ff00; color:#00ff00;
-      font-weight: bold; border-radius: 5px; font-size: 16px; cursor: pointer; text-transform: uppercase;
+      font-weight: bold; border-radius: 5px; font-size: 14px; cursor: pointer; text-transform: uppercase;
     }
     #mobile-controls { position: fixed; bottom: 20px; width: 100%; display: flex; justify-content: center; z-index: 150; }
     .d-pad { display: grid; grid-template-columns: 85px 85px 85px; gap: 8px; }
@@ -64,7 +64,7 @@
     <p style="color: #ccc; font-size: 13px; text-align: left;">
       • Recolecta <b>10 llaves</b> 🔧 para reparar la planta.<br>
       • Identifica la corrosión ⚠️ para eliminar amenazas.<br>
-      • Cada nivel tiene fallas más complejas.<br>
+      • Lee la descripción para identificar la falla técnica.<br>
       • <b>CUIDADO:</b> Respuesta errónea = Vida perdida ❤️.<br>
     </p>
     <button class="opt-btn" onclick="startGame()">INICIAR INSPECCIÓN</button>
@@ -75,7 +75,7 @@
   <div class="modal-content">
     <h3 style="margin:0; color: #00ff00;">ANALIZANDO FALLA</h3>
     <img id="corrosion-image" src="">
-    <p id="modal-description" style="color: #ccc; font-size: 14px; font-weight: bold;"></p>
+    <p id="modal-description" style="color: #ccc; font-size: 13px; margin: 10px 0; line-height: 1.4;"></p>
     <div id="options-container"></div>
   </div>
 </div>
@@ -102,34 +102,26 @@
 <script>
     let userName = "Inspector";
     
-    // Base de datos de imágenes según tus archivos subidos
+    // BASE DE DATOS CON TEXTOS PERSONALIZADOS
     const corrosionDb = [
-        { id: "general", file: "general_corrosion.png", level: 1 },
-        { id: "pitting", file: "pitting_corrosion.png", level: 1 },
-        { id: "erosion", file: "corrosion_erosion.png", level: 1 },
-        { id: "galvanica", file: "corrosion_galvanica.png", level: 2 },
-        { id: "crevise", file: "crevise_corrosion.png", level: 2 },
-        { id: "intergranular", file: "corrosion_intergranular.png", level: 2 },
-        { id: "fretting", file: "fretting_corrosion.png", level: 3 },
-        { id: "bajo tension", file: "corrosion_bajo_tension.png", level: 3 }
+        { id: "fretting", file: "fretting_corrosion.png", info: "Daño por vibraciones constantes entre dos superficies bajo carga." },
+        { id: "bajo tension", file: "corrosion_bajo_tension.png", info: "Combinación de un medio corrosivo y esfuerzos mecánicos de tracción." },
+        { id: "erosion", file: "corrosion_erosion.png", info: "Aceleración del ataque por el movimiento de un fluido sobre el metal." },
+        { id: "intergranular", file: "corrosion_intergranular.png", info: "El ataque se localiza en los límites de grano de la estructura metálica." },
+        { id: "galvanica", file: "corrosion_galvanica.png", info: "Interacción electroquímica entre dos metales diferentes en contacto." },
+        { id: "general", file: "general_corrosion.png", info: "Pérdida de metal uniforme en toda la superficie expuesta." },
+        { id: "pitting", file: "pitting_corrosion.png", info: "Ataque localizado que genera pequeños agujeros profundos (picaduras)." },
+        { id: "crevise", file: "crevise_corrosion.png", info: "Ocurre en rendijas o zonas de estancamiento de fluidos." }
     ];
 
     const gameData = {
         lives: 3, level: 1, isPaused: true, toolsCollected: 0,
         input: { up: false, down: false, left: false, right: false },
-        levels: [
-            { speed: 170, enemySpeed: 65, enemyCount: 3, map: [
-                [1,1,1,1,1,1,1,1,1,1], [1,0,0,0,0,0,0,0,0,1], [1,0,1,1,0,0,1,1,0,1],
-                [0,0,0,0,0,1,0,0,0,0], [1,0,1,1,1,1,1,1,0,1], [1,0,0,0,0,0,0,0,0,1], [1,1,1,1,1,1,1,1,1,1]
-            ]},
-            { speed: 190, enemySpeed: 90, enemyCount: 5, map: [
-                [1,1,1,1,1,1,1,1,1,1], [1,0,0,1,1,1,1,0,0,1], [1,0,1,1,0,0,1,1,0,1],
-                [0,0,0,0,0,0,0,0,0,0], [1,1,0,1,0,0,1,0,1,1], [1,0,0,0,0,0,0,0,0,1], [1,1,1,1,1,1,1,1,1,1]
-            ]},
-            { speed: 210, enemySpeed: 120, enemyCount: 7, map: [
-                [1,1,1,1,1,1,1,1,1,1], [1,0,1,0,0,0,0,1,0,1], [1,0,1,0,1,1,0,1,0,1],
-                [0,0,0,0,1,1,0,0,0,0], [1,0,1,0,0,0,0,1,0,1], [1,0,0,0,1,1,0,0,0,1], [1,1,1,1,1,1,1,1,1,1]
-            ]}
+        levels: [{ speed: 170, enemySpeed: 65, enemyCount: 4 }, { speed: 190, enemySpeed: 90, enemyCount: 6 }, { speed: 210, enemySpeed: 120, enemyCount: 8 }],
+        maps: [
+            [[1,1,1,1,1,1,1,1,1,1], [1,0,0,0,0,0,0,0,0,1], [1,0,1,1,0,0,1,1,0,1], [0,0,0,0,0,1,0,0,0,0], [1,0,1,1,1,1,1,1,0,1], [1,0,0,0,0,0,0,0,0,1], [1,1,1,1,1,1,1,1,1,1]],
+            [[1,1,1,1,1,1,1,1,1,1], [1,0,0,1,1,1,1,0,0,1], [1,0,1,1,0,0,1,1,0,1], [0,0,0,0,0,0,0,0,0,0], [1,1,0,1,0,0,1,0,1,1], [1,0,0,0,0,0,0,0,0,1], [1,1,1,1,1,1,1,1,1,1]],
+            [[1,1,1,1,1,1,1,1,1,1], [1,0,1,0,0,0,0,1,0,1], [1,0,1,0,1,1,0,1,0,1], [0,0,0,0,1,1,0,0,0,0], [1,0,1,0,0,0,0,1,0,1], [1,0,0,0,1,1,0,0,0,1], [1,1,1,1,1,1,1,1,1,1]]
         ]
     };
 
@@ -154,6 +146,7 @@
             const w = this.cameras.main.width;
             const h = this.cameras.main.height;
             const config = gameData.levels[gameData.level - 1];
+            const map = gameData.maps[gameData.level - 1];
             
             gameData.toolsCollected = 0;
             document.getElementById('level').textContent = gameData.level;
@@ -163,17 +156,9 @@
             this.tools = this.physics.add.group();
             this.enemies = this.physics.add.group();
 
-            this.setupLevel(w, h, config);
+            // SISTEMA DE NO REPETICIÓN POR NIVEL
+            let levelPool = [...corrosionDb].sort(() => Math.random() - 0.5);
 
-            this.physics.add.collider(this.player, this.walls);
-            this.physics.add.collider(this.enemies, this.walls);
-            this.physics.add.overlap(this.player, this.tools, this.collectTool, null, this);
-            this.physics.add.overlap(this.player, this.enemies, this.hitEnemy, null, this);
-            this.initControls();
-        }
-
-        setupLevel(w, h, config) {
-            const map = config.map;
             const cellW = w / 10;
             const cellH = (h - 320) / map.length;
             const offsetY = 110;
@@ -207,11 +192,17 @@
                 e.add(this.add.text(-12, -12, '⚠️', {fontSize:'24px'}));
                 this.physics.add.existing(e);
                 e.body.setCircle(12, -12, -12).setBounce(1);
-                // Asignar defecto según nivel
-                const pool = corrosionDb.filter(d => d.level <= gameData.level);
-                e.defData = pool[Math.floor(Math.random() * pool.length)];
+
+                if (levelPool.length === 0) levelPool = [...corrosionDb].sort(() => Math.random() - 0.5);
+                e.defData = levelPool.pop(); 
                 this.enemies.add(e);
             }
+
+            this.physics.add.collider(this.player, this.walls);
+            this.physics.add.collider(this.enemies, this.walls);
+            this.physics.add.overlap(this.player, this.tools, this.collectTool, null, this);
+            this.physics.add.overlap(this.player, this.enemies, this.hitEnemy, null, this);
+            this.initControls();
         }
 
         update() {
@@ -222,10 +213,7 @@
             else if (gameData.input.right) this.player.body.setVelocityX(config.speed);
             if (gameData.input.up) this.player.body.setVelocityY(-config.speed);
             else if (gameData.input.down) this.player.body.setVelocityY(config.speed);
-
-            this.enemies.children.iterate(e => {
-                if(e && e.active) this.physics.moveToObject(e, this.player, config.enemySpeed);
-            });
+            this.enemies.children.iterate(e => { if(e && e.active) this.physics.moveToObject(e, this.player, config.enemySpeed); });
         }
 
         collectTool(p, t) {
@@ -241,18 +229,16 @@
             this.player.body.setVelocity(0);
             
             const def = e.defData;
-            const modalImg = document.getElementById('corrosion-image');
-            modalImg.src = def.file;
-            document.getElementById('modal-description').textContent = "¿Qué tipo de falla es?";
+            document.getElementById('corrosion-image').src = def.file;
+            document.getElementById('modal-description').textContent = def.info; // MOSTRAR TEXTO ÚNICO
             
             const cont = document.getElementById('options-container');
             cont.innerHTML = '';
 
-            // Generar 4 opciones: la correcta y 3 aleatorias
-            const options = [def.id];
+            let options = [def.id];
             while(options.length < 4) {
-                let randomDef = corrosionDb[Math.floor(Math.random()*corrosionDb.length)].id;
-                if(!options.includes(randomDef)) options.push(randomDef);
+                let r = corrosionDb[Math.floor(Math.random()*corrosionDb.length)].id;
+                if(!options.includes(r)) options.push(r);
             }
             options.sort(() => Math.random() - 0.5);
 
@@ -261,10 +247,7 @@
                 btn.className = 'opt-btn'; btn.textContent = opt;
                 btn.onclick = () => {
                     if(opt === def.id) { e.destroy(); } 
-                    else { 
-                        gameData.lives--; 
-                        document.getElementById('lives').textContent = "❤️".repeat(Math.max(0, gameData.lives));
-                    }
+                    else { gameData.lives--; document.getElementById('lives').textContent = "❤️".repeat(Math.max(0, gameData.lives)); }
                     document.getElementById('inspection-modal').style.display = 'none';
                     gameData.isPaused = false;
                     this.checkWinCondition();
@@ -275,11 +258,11 @@
         }
 
         checkWinCondition() {
-            if(gameData.lives <= 0) { alert(`INSPECTOR ${userName}: PLANTA COLAPSADA.`); location.reload(); return; }
+            if(gameData.lives <= 0) { alert(`INSPECTOR ${userName}: LA PLANTA HA COLAPSADO.`); location.reload(); return; }
             if(gameData.toolsCollected >= 10 || this.enemies.countActive() === 0) {
                 if(gameData.level < 3) {
                     gameData.level++;
-                    alert("¡NIVEL " + (gameData.level-1) + " COMPLETADO!");
+                    alert("¡NIVEL SUPERADO!");
                     this.scene.restart();
                 } else {
                     gameData.isPaused = true;
