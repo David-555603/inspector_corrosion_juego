@@ -59,15 +59,26 @@
     <input type="text" id="inspector-name" placeholder="NOMBRE..." maxlength="30">
     <button class="opt-btn" onclick="checkName()">VER MANUAL</button>
   </div>
-  <div class="modal-content" id="manual-content" style="display: none;">
-    <h3 style="color: #00ff00;">MANUAL DE MISIÓN</h3>
-    <p style="color: #ccc; font-size: 13px; text-align: left;">
-      • Recolecta <b>10 llaves</b> 🔧 para reparar la planta.<br>
-      • Identifica la corrosión ⚠️ para eliminar amenazas.<br>
-      • Lee la descripción para identificar la falla técnica.<br>
-      • <b>CUIDADO:</b> Respuesta errónea = Vida perdida ❤️.<br>
-    </p>
-    <button class="opt-btn" onclick="startGame()">INICIAR INSPECCIÓN</button>
+ <div class="modal-content" id="manual-content" style="display: none;">
+    <h3 style="color: #00ff00; margin-top: 0;">📋 MANUAL DE OPERACIONES</h3>
+    
+    <div class="manual-text">
+        <h4>Misión Principal</h4>
+        Estás a cargo de la integridad estructural de la planta. Tu objetivo es <b>recolectar las 10 herramientas (🔧)</b> en cada sector para realizar reparaciones críticas.
+        
+        <h4>Amenazas (Alertas ⚠️)</h4>
+        Las alertas representan puntos críticos de falla. Al tocar una, entrarás en modo <b>Análisis Técnico</b>. Deberás leer la descripción de los síntomas y seleccionar el tipo de corrosión correcto.
+        
+        <h4>Reglas de Seguridad</h4>
+        • <b>Análisis Correcto:</b> Elimina la amenaza del mapa.<br>
+        • <b>Análisis Erróneo:</b> Pierdes una vida (❤️). Si pierdes las 3, la planta colapsa.<br>
+        • <b>Túneles:</b> Puedes usar las salidas laterales para aparecer al otro lado del sector.
+        
+        <h4>Certificación Académica</h4>
+        Al completar con éxito los <b>3 niveles de dificultad</b>, el sistema emitirá automáticamente un <b>Certificado de Maestro en Control de Corrosión</b> a tu nombre.
+    </div>
+    
+    <button class="opt-btn" onclick="startGame()">ACEPTAR Y COMENZAR</button>
   </div>
 </div>
 
