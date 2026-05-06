@@ -102,7 +102,6 @@
 <script>
     let userName = "Inspector";
     
-    // BASE DE DATOS CON TEXTOS PERSONALIZADOS
     const corrosionDb = [
         { id: "fretting", file: "fretting_corrosion.png", info: "micro-movimientos, desgaste superficial, formación de óxidos, daño localizado, combinación de desgaste y corrosión" },
         { id: "bajo tension", file: "corrosion_bajo_tension.png", info: "presencia de grietas, daño localizado, acción combinada de esfuerzo mecánico y ambiente corrosivo, propagación interna de fisuras" },
@@ -156,7 +155,6 @@
             this.tools = this.physics.add.group();
             this.enemies = this.physics.add.group();
 
-            // SISTEMA DE NO REPETICIÓN POR NIVEL
             let levelPool = [...corrosionDb].sort(() => Math.random() - 0.5);
 
             const cellW = w / 10;
@@ -208,11 +206,18 @@
         update() {
             if (gameData.isPaused || !this.player) return;
             const config = gameData.levels[gameData.level-1];
+            const w = this.cameras.main.width;
+
             this.player.body.setVelocity(0);
             if (gameData.input.left) this.player.body.setVelocityX(-config.speed);
             else if (gameData.input.right) this.player.body.setVelocityX(config.speed);
             if (gameData.input.up) this.player.body.setVelocityY(-config.speed);
             else if (gameData.input.down) this.player.body.setVelocityY(config.speed);
+
+            // --- LÓGICA DEL TÚNEL ---
+            if (this.player.x < -15) { this.player.x = w + 15; }
+            else if (this.player.x > w + 15) { this.player.x = -15; }
+
             this.enemies.children.iterate(e => { if(e && e.active) this.physics.moveToObject(e, this.player, config.enemySpeed); });
         }
 
@@ -230,7 +235,7 @@
             
             const def = e.defData;
             document.getElementById('corrosion-image').src = def.file;
-            document.getElementById('modal-description').textContent = def.info; // MOSTRAR TEXTO ÚNICO
+            document.getElementById('modal-description').textContent = def.info;
             
             const cont = document.getElementById('options-container');
             cont.innerHTML = '';
