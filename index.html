@@ -13,8 +13,6 @@
       padding: 5px 0; color: #fff; text-align: center;
     }
     #hud { display: flex; justify-content: center; gap: 15px; font-weight: bold; font-size: 14px; }
-    
-    /* Modales */
     .modal {
       display:flex; position:fixed; top:0; left:0; right:0; bottom:0;
       background:rgba(0,0,0,0.95); z-index:2000; align-items:center; justify-content:center;
@@ -23,18 +21,14 @@
       background:#000; padding:20px; border-radius:10px; width:85%; max-width:400px;
       border:3px solid #00ff00; text-align:center; box-shadow: 0 0 20px #0055ff;
     }
-
-    /* Input Nombre */
     input#inspector-name {
       background: #111; border: 2px solid #0055ff; color: #00ff00;
       padding: 10px; width: 80%; margin: 15px 0; font-family: 'Courier New', monospace;
       text-align: center; font-size: 18px;
     }
-
-    /* Botones y Controles */
     .opt-btn {
       width:100%; padding:15px; margin:5px 0; background:#001133; border:2px solid #00ff00; color:#00ff00;
-      font-weight: bold; border-radius: 5px; font-size: 16px; cursor: pointer;
+      font-weight: bold; border-radius: 5px; font-size: 16px; cursor: pointer; text-transform: uppercase;
     }
     #mobile-controls { position: fixed; bottom: 20px; width: 100%; display: flex; justify-content: center; z-index: 150; }
     .d-pad { display: grid; grid-template-columns: 85px 85px 85px; gap: 8px; }
@@ -44,13 +38,8 @@
       display: flex; align-items: center; justify-content: center;
       font-size: 32px; color: #fff; touch-action: none;
     }
-
-    /* Certificado Final */
-    #certificate {
-      background: linear-gradient(45deg, #000428, #004e92);
-      border: 10px double #ffd700; color: #fff; padding: 30px;
-    }
-    #corrosion-image { width:100%; border-radius:5px; margin: 10px 0; border: 1px solid #444; }
+    #certificate { background: linear-gradient(45deg, #000428, #004e92); border: 10px double #ffd700; color: #fff; padding: 30px; }
+    #corrosion-image { width:100%; border-radius:5px; margin: 10px 0; border: 1px solid #444; max-height: 200px; object-fit: cover; }
   </style>
 </head>
 <body>
@@ -75,6 +64,7 @@
     <p style="color: #ccc; font-size: 13px; text-align: left;">
       • Recolecta <b>10 llaves</b> 🔧 para reparar la planta.<br>
       • Identifica la corrosión ⚠️ para eliminar amenazas.<br>
+      • Cada nivel tiene fallas más complejas.<br>
       • <b>CUIDADO:</b> Respuesta errónea = Vida perdida ❤️.<br>
     </p>
     <button class="opt-btn" onclick="startGame()">INICIAR INSPECCIÓN</button>
@@ -85,7 +75,7 @@
   <div class="modal-content">
     <h3 style="margin:0; color: #00ff00;">ANALIZANDO FALLA</h3>
     <img id="corrosion-image" src="">
-    <p id="modal-description" style="color: #ccc; font-size: 12px;"></p>
+    <p id="modal-description" style="color: #ccc; font-size: 14px; font-weight: bold;"></p>
     <div id="options-container"></div>
   </div>
 </div>
@@ -111,6 +101,19 @@
 
 <script>
     let userName = "Inspector";
+    
+    // Base de datos de imágenes según tus archivos subidos
+    const corrosionDb = [
+        { id: "general", file: "general_corrosion.png", level: 1 },
+        { id: "pitting", file: "pitting_corrosion.png", level: 1 },
+        { id: "erosion", file: "corrosion_erosion.png", level: 1 },
+        { id: "galvanica", file: "corrosion_galvanica.png", level: 2 },
+        { id: "crevise", file: "crevise_corrosion.png", level: 2 },
+        { id: "intergranular", file: "corrosion_intergranular.png", level: 2 },
+        { id: "fretting", file: "fretting_corrosion.png", level: 3 },
+        { id: "bajo tension", file: "corrosion_bajo_tension.png", level: 3 }
+    ];
+
     const gameData = {
         lives: 3, level: 1, isPaused: true, toolsCollected: 0,
         input: { up: false, down: false, left: false, right: false },
@@ -136,9 +139,7 @@
             userName = input;
             document.getElementById('start-content').style.display = 'none';
             document.getElementById('manual-content').style.display = 'block';
-        } else {
-            alert("¡Por favor ingrese su nombre!");
-        }
+        } else { alert("¡Por favor ingrese su nombre!"); }
     }
 
     function startGame() {
@@ -168,7 +169,6 @@
             this.physics.add.collider(this.enemies, this.walls);
             this.physics.add.overlap(this.player, this.tools, this.collectTool, null, this);
             this.physics.add.overlap(this.player, this.enemies, this.hitEnemy, null, this);
-
             this.initControls();
         }
 
@@ -183,35 +183,33 @@
                 row.forEach((val, x) => {
                     let posX = x * cellW + cellW/2;
                     let posY = y * cellH + offsetY;
-
                     if (val === 1) {
                         this.walls.add(this.add.rectangle(posX, posY, cellW-3, cellH-3, 0x0055ff).setStrokeStyle(2, 0x00ffff, 0.4));
-                    } else {
-                        if (!spawnFound) {
-                            this.player = this.add.container(posX, posY);
-                            this.player.add([this.add.circle(0, 0, 11, 0xffff00), this.add.text(-9, -12, '👷', {fontSize:'16px'})]);
-                            this.physics.add.existing(this.player);
-                            this.player.body.setCircle(11, -11, -11);
-                            spawnFound = true;
-                        }
-                        if (this.tools.getLength() < 10 && Math.random() > 0.45) {
-                            let t = this.add.text(posX-10, posY-12, '🔧', {fontSize:'18px'});
-                            this.physics.add.existing(t);
-                            this.tools.add(t);
-                        }
+                    } else if (!spawnFound) {
+                        this.player = this.add.container(posX, posY);
+                        this.player.add([this.add.circle(0, 0, 11, 0xffff00), this.add.text(-9, -12, '👷', {fontSize:'16px'})]);
+                        this.physics.add.existing(this.player);
+                        this.player.body.setCircle(11, -11, -11);
+                        spawnFound = true;
+                    }
+                    if (val === 0 && Math.random() > 0.5 && this.tools.getLength() < 10) {
+                        let t = this.add.text(posX-10, posY-12, '🔧', {fontSize:'18px'});
+                        this.physics.add.existing(t);
+                        this.tools.add(t);
                     }
                 });
             });
-            document.getElementById('tools-count').textContent = `0/10`;
 
             for(let i=0; i<config.enemyCount; i++) {
                 let ex = (i%2==0) ? cellW*1.5 : cellW*8.5;
-                let ey = (i<2) ? offsetY + cellH : offsetY + (cellH * (map.length-2));
+                let ey = offsetY + (cellH * (i % (map.length-2) + 1));
                 let e = this.add.container(ex, ey);
                 e.add(this.add.text(-12, -12, '⚠️', {fontSize:'24px'}));
                 this.physics.add.existing(e);
                 e.body.setCircle(12, -12, -12).setBounce(1);
-                e.defData = this.getRandomDefect();
+                // Asignar defecto según nivel
+                const pool = corrosionDb.filter(d => d.level <= gameData.level);
+                e.defData = pool[Math.floor(Math.random() * pool.length)];
                 this.enemies.add(e);
             }
         }
@@ -219,16 +217,11 @@
         update() {
             if (gameData.isPaused || !this.player) return;
             const config = gameData.levels[gameData.level-1];
-            const w = this.cameras.main.width;
-
             this.player.body.setVelocity(0);
             if (gameData.input.left) this.player.body.setVelocityX(-config.speed);
             else if (gameData.input.right) this.player.body.setVelocityX(config.speed);
             if (gameData.input.up) this.player.body.setVelocityY(-config.speed);
             else if (gameData.input.down) this.player.body.setVelocityY(config.speed);
-
-            if (this.player.x < -10) this.player.x = w + 10;
-            if (this.player.x > w + 10) this.player.x = -10;
 
             this.enemies.children.iterate(e => {
                 if(e && e.active) this.physics.moveToObject(e, this.player, config.enemySpeed);
@@ -248,19 +241,28 @@
             this.player.body.setVelocity(0);
             
             const def = e.defData;
-            document.getElementById('corrosion-image').src = def.img;
-            document.getElementById('modal-description').textContent = def.desc;
+            const modalImg = document.getElementById('corrosion-image');
+            modalImg.src = def.file;
+            document.getElementById('modal-description').textContent = "¿Qué tipo de falla es?";
+            
             const cont = document.getElementById('options-container');
             cont.innerHTML = '';
 
-            ["Uniforme", "Pitting", "Galvánica", "Erosión"].forEach(opt => {
+            // Generar 4 opciones: la correcta y 3 aleatorias
+            const options = [def.id];
+            while(options.length < 4) {
+                let randomDef = corrosionDb[Math.floor(Math.random()*corrosionDb.length)].id;
+                if(!options.includes(randomDef)) options.push(randomDef);
+            }
+            options.sort(() => Math.random() - 0.5);
+
+            options.forEach(opt => {
                 const btn = document.createElement('button');
                 btn.className = 'opt-btn'; btn.textContent = opt;
                 btn.onclick = () => {
-                    if(opt.toLowerCase() === def.type.toLowerCase()) { 
-                        e.destroy();
-                    } else { 
-                        gameData.lives--;
+                    if(opt === def.id) { e.destroy(); } 
+                    else { 
+                        gameData.lives--; 
                         document.getElementById('lives').textContent = "❤️".repeat(Math.max(0, gameData.lives));
                     }
                     document.getElementById('inspection-modal').style.display = 'none';
@@ -273,16 +275,11 @@
         }
 
         checkWinCondition() {
-            if(gameData.lives <= 0) { 
-                alert(`EL INSPECTOR ${userName} HA FALLADO.`); 
-                location.reload(); 
-                return; 
-            }
-
+            if(gameData.lives <= 0) { alert(`INSPECTOR ${userName}: PLANTA COLAPSADA.`); location.reload(); return; }
             if(gameData.toolsCollected >= 10 || this.enemies.countActive() === 0) {
                 if(gameData.level < 3) {
                     gameData.level++;
-                    alert("¡NIVEL SUPERADO!");
+                    alert("¡NIVEL " + (gameData.level-1) + " COMPLETADO!");
                     this.scene.restart();
                 } else {
                     gameData.isPaused = true;
@@ -290,15 +287,6 @@
                     document.getElementById('final-modal').style.display = 'flex';
                 }
             }
-        }
-
-        getRandomDefect() {
-            return [
-                {type:"uniforme", img:"https://picsum.photos/id/1015/300/200", desc:"Deterioro por corrosión uniforme en tubería."},
-                {type:"pitting", img:"https://picsum.photos/id/201/300/200", desc:"Falla crítica por picaduras profundas."},
-                {type:"galvánica", img:"https://picsum.photos/id/866/300/200", desc:"Corrosión por unión de metales distintos."},
-                {type:"erosión", img:"https://picsum.photos/id/1016/300/200", desc:"Falla por fricción de fluido a alta velocidad."}
-            ][Math.floor(Math.random()*4)];
         }
 
         initControls() {
@@ -315,7 +303,7 @@
     new Phaser.Game({
         type: Phaser.AUTO, width: window.innerWidth, height: window.innerHeight,
         parent: 'game-container', backgroundColor: '#000',
-        physics: { default: 'arcade' }, scene: CorroPac
+        physics: { default: 'arcade', arcade: { debug: false } }, scene: CorroPac
     });
 </script>
 </body>
