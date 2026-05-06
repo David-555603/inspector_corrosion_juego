@@ -32,7 +32,6 @@
       font-weight: bold; border-radius: 5px; font-size: 14px; cursor: pointer; text-transform: uppercase;
     }
     
-    /* ESTILOS DEL TEXTO DEL MANUAL Y REFERENCIAS */
     .manual-text, .ref-text { 
         color: #eeeeee; 
         font-size: 12px; 
@@ -47,7 +46,7 @@
         border-bottom: 1px solid #333; 
     }
     .manual-text b { color: #00ff00; }
-    .ref-item { margin-bottom: 10px; padding-left: 10px; border-left: 2px solid #0055ff; }
+    .ref-item { margin-bottom: 10px; padding-left: 10px; border-left: 2px solid #0055ff; font-size: 11px; }
 
     #mobile-controls { position: fixed; bottom: 20px; width: 100%; display: flex; justify-content: center; z-index: 150; }
     .d-pad { display: grid; grid-template-columns: 85px 85px 85px; gap: 8px; }
@@ -57,8 +56,6 @@
       display: flex; align-items: center; justify-content: center;
       font-size: 32px; color: #fff; touch-action: none;
     }
-    #certificate { background: linear-gradient(45deg, #000428, #004e92); border: 10px double #ffd700; color: #fff; padding: 30px; }
-    #corrosion-image { width:100%; border-radius:5px; margin: 10px 0; border: 1px solid #444; max-height: 200px; object-fit: cover; }
   </style>
 </head>
 <body>
@@ -72,6 +69,7 @@
 </div>
 
 <div id="intro-modal" class="modal">
+  
   <div class="modal-content" id="start-content">
     <h2 style="color: #00ff00; margin-top: 0;">CORROPAC</h2>
     <p style="color: #fff;">INGRESE NOMBRE COMPLETO:</p>
@@ -79,9 +77,8 @@
     <button class="opt-btn" onclick="showManual()">VER MANUAL DE INSPECCIÓN</button>
   </div>
 
-<div class="modal-content" id="manual-content" style="display: none;">
+  <div class="modal-content" id="manual-content" style="display: none;">
     <h3 style="color: #00ff00; margin-top: 0;">📋 MANUAL DE OPERACIONES</h3>
-    
     <div class="manual-text">
         <h4>Misión Principal</h4>
         Estás a cargo de la integridad estructural de la planta. Tu objetivo es <b>recolectar las 10 herramientas (🔧)</b> en cada sector para realizar reparaciones críticas.
@@ -97,23 +94,21 @@
         <h4>Certificación Académica</h4>
         Al completar con éxito los <b>3 niveles de dificultad</b>, el sistema emitirá automáticamente un <b>Certificado de Maestro en Control de Corrosión</b> a tu nombre.
     </div>
-    
     <button class="opt-btn" onclick="startGame()">ACEPTAR Y COMENZAR</button>
-  <button class="opt-btn" style="border-color: #0055ff; color: #0055ff;" onclick="showRefs()">VER REFERENCIAS TÉCNICAS</button>
+    <button class="opt-btn" style="border-color: #0055ff; color: #0055ff;" onclick="showRefs()">VER REFERENCIAS TÉCNICAS</button>
   </div>
-</div>
-    
+
   <div class="modal-content" id="refs-content" style="display: none;">
-    <h3 style="color: #00ff00; margin-top: 0;">📚 REFERENCIAS DE IMÁGENES</h3>
+    <h3 style="color: #00ff00; margin-top: 0;">📚 REFERENCIAS BIBLIOGRÁFICAS</h3>
     <div class="ref-text">
-        <div class="ref-item"><b>Crevice/Hendidura:</b> Costa et al. (2023). Engineering Failure Analysis, 144, 106955.</div>
-        <div class="ref-item"><b>Pitting:</b> Lamas, J. S. et al. (2026). Electrochimica Acta, 563, 148721.</div>
-        <div class="ref-item"><b>Generalizada:</b> Khalaf, A. H. et al. (2024). Engineering Failure Analysis, 155, 107735.</div>
-        <div class="ref-item"><b>Galvánica:</b> Zhang, H. et al. (2024). Int. Journal of Electrochemical Science, 19, 100498.</div>
-        <div class="ref-item"><b>Intergranular:</b> Mu, G. et al. (2026). Corrosion Science, 261, 113605.</div>
-        <div class="ref-item"><b>Erosión:</b> Li, J. et al. (2026). Journal of Materials Research and Technology, 42, 130–144.</div>
-        <div class="ref-item"><b>Esfuerzo/Tensión:</b> Nogara & Zarrouk (2018). Renewable and Sustainable Energy Reviews, 82.</div>
-        <div class="ref-item"><b>Fretting:</b> Qin, Z. et al. (2026). Tribology International, 214, 111394.</div>
+        <div class="ref-item"><b>Crevice:</b> Costa, E. M., et al. (2023). Crevice corrosion on stainless steels in oil and gas industry. Engineering Failure Analysis, 144, 106955.</div>
+        <div class="ref-item"><b>Pitting:</b> Lamas, J. S., et al. (2026). Assessing potential of electrochemical techniques for pitting. Electrochimica Acta, 563, 148721.</div>
+        <div class="ref-item"><b>Generalizada:</b> Khalaf, A. H., et al. (2024). Emerging AI technologies for corrosion monitoring. Engineering Failure Analysis, 155, 107735.</div>
+        <div class="ref-item"><b>Galvánica:</b> Zhang, H., et al. (2024). Study on galvanic corrosion behavior. International Journal of Electrochemical Science, 19, 100498.</div>
+        <div class="ref-item"><b>Intergranular:</b> Mu, G., et al. (2026). Effects of Cu/Ga on suppressing intergranular corrosion. Corrosion Science, 261, 113605.</div>
+        <div class="ref-item"><b>Erosión:</b> Li, J., et al. (2026). Erosion-corrosion failure of L245N steel elbow. Journal of Materials Research and Technology, 42, 130–144.</div>
+        <div class="ref-item"><b>Tensión/Geotérmica:</b> Nogara, J., & Zarrouk, S. J. (2018). Corrosion in geothermal environment. Renewable and Sustainable Energy Reviews, 82, 1333–1346.</div>
+        <div class="ref-item"><b>Fretting:</b> Qin, Z., et al. (2026). Fretting corrosion behaviors of bare/micro-arc-oxidized Ti6Al4V. Tribology International, 214, 111394.</div>
     </div>
     <button class="opt-btn" onclick="showManual()">VOLVER AL MANUAL</button>
   </div>
@@ -122,17 +117,17 @@
 <div id="inspection-modal" class="modal" style="display: none;">
   <div class="modal-content">
     <h3 style="margin:0; color: #00ff00;">ANALIZANDO FALLA</h3>
-    <img id="corrosion-image" src="">
+    <img id="corrosion-image" src="" style="width:100%; border-radius:5px; margin: 10px 0; border: 1px solid #444; max-height: 200px; object-fit: cover;">
     <p id="modal-description" style="color: #ccc; font-size: 13px; margin: 10px 0; line-height: 1.4;"></p>
     <div id="options-container"></div>
   </div>
 </div>
 
 <div id="final-modal" class="modal" style="display: none;">
-  <div class="modal-content" id="certificate">
+  <div class="modal-content" id="certificate" style="background: linear-gradient(45deg, #000428, #004e92); border: 10px double #ffd700; color: #fff; padding: 30px;">
     <h1 style="color: #ffd700; margin-bottom: 5px;">CERTIFICADO</h1>
     <p style="font-size: 14px;">LA ACADEMIA DE INGENIERÍA OTORGA A:</p>
-    <h2 id="cert-name" style="color: #00ff00; text-transform: uppercase; word-wrap: break-word;"></h2>
+    <h2 id="cert-name" style="color: #00ff00; text-transform: uppercase;"></h2>
     <p style="font-size: 18px; font-weight: bold; color: #ffd700;">MAESTRO EN CONTROL DE CORROSIÓN</p>
     <hr border="1" color="#ffd700">
     <p style="font-size: 12px;">Planta Industrial Salvada con Éxito</p>
@@ -149,7 +144,6 @@
 
 <script>
     let userName = "Inspector";
-    
     const corrosionDb = [
         { id: "fretting", file: "fretting_corrosion.png", info: "micro-movimientos, desgaste superficial, formación de óxidos, daño localizado, combinación de desgaste y corrosión" },
         { id: "bajo tension", file: "corrosion_bajo_tension.png", info: "presencia de grietas, daño localizado, acción combinada de esfuerzo mecánico y ambiente corrosivo, propagación interna de fisuras" },
@@ -191,27 +185,22 @@
 
     class CorroPac extends Phaser.Scene {
         constructor() { super('CorroPac'); }
-
         create() {
             const w = this.cameras.main.width;
             const h = this.cameras.main.height;
             const config = gameData.levels[gameData.level - 1];
             const map = gameData.maps[gameData.level - 1];
-            
             gameData.toolsCollected = 0;
             document.getElementById('level').textContent = gameData.level;
             document.getElementById('lives').textContent = "❤️".repeat(gameData.lives);
-
             this.walls = this.physics.add.staticGroup();
             this.tools = this.physics.add.group();
             this.enemies = this.physics.add.group();
-
             let levelPool = [...corrosionDb].sort(() => Math.random() - 0.5);
             const cellW = w / 10;
             const cellH = (h - 320) / map.length;
             const offsetY = 110;
             let spawnFound = false;
-
             map.forEach((row, y) => {
                 row.forEach((val, x) => {
                     let posX = x * cellW + cellW/2;
@@ -232,7 +221,6 @@
                     }
                 });
             });
-
             for(let i=0; i<config.enemyCount; i++) {
                 let ex = (i%2==0) ? cellW*1.5 : cellW*8.5;
                 let ey = offsetY + (cellH * (i % (map.length-2) + 1));
@@ -244,14 +232,12 @@
                 e.defData = levelPool.pop(); 
                 this.enemies.add(e);
             }
-
             this.physics.add.collider(this.player, this.walls);
             this.physics.add.collider(this.enemies, this.walls);
             this.physics.add.overlap(this.player, this.tools, this.collectTool, null, this);
             this.physics.add.overlap(this.player, this.enemies, this.hitEnemy, null, this);
             this.initControls();
         }
-
         update() {
             if (gameData.isPaused || !this.player) return;
             const config = gameData.levels[gameData.level-1];
@@ -265,14 +251,12 @@
             else if (this.player.x > w + 15) { this.player.x = -15; }
             this.enemies.children.iterate(e => { if(e && e.active) this.physics.moveToObject(e, this.player, config.enemySpeed); });
         }
-
         collectTool(p, t) {
             t.destroy();
             gameData.toolsCollected++;
             document.getElementById('tools-count').textContent = `${gameData.toolsCollected}/10`;
             this.checkWinCondition();
         }
-
         hitEnemy(p, e) {
             if (gameData.isPaused) return;
             gameData.isPaused = true;
@@ -302,7 +286,6 @@
             });
             document.getElementById('inspection-modal').style.display = 'flex';
         }
-
         checkWinCondition() {
             if(gameData.lives <= 0) { alert(`INSPECTOR ${userName}: LA PLANTA HA COLAPSADO.`); location.reload(); return; }
             if(gameData.toolsCollected >= 10 || this.enemies.countActive() === 0) {
@@ -317,7 +300,6 @@
                 }
             }
         }
-
         initControls() {
             const setup = (id, k) => {
                 const b = document.getElementById(id);
@@ -328,7 +310,6 @@
             ['up','down','left','right'].forEach(k => setup(k, k));
         }
     }
-
     new Phaser.Game({
         type: Phaser.AUTO, width: window.innerWidth, height: window.innerHeight,
         parent: 'game-container', backgroundColor: '#000',
